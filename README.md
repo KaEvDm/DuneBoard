@@ -1,5 +1,9 @@
 # DuneBoard
 
+<p align="center">
+  <img src="docs/assets/duneboard-logo.png" alt="DuneBoard logo" width="420">
+</p>
+
 DuneBoard is a local-first task graph for AI agents and humans.
 
 The project goal is simple: keep task management in Markdown files, then render
