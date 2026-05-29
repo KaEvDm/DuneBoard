@@ -11,9 +11,8 @@ those files as a fast visual board, graph, and agent-ready execution queue.
 
 ## Status
 
-Project definition release. The first public milestone, `v0.1.0`, defines the
-Markdown task format, graph model, CLI workflow direction, minimal UI direction,
-and public development workflow.
+First runnable preview. `v0.2.0` includes the TypeScript core parser/indexer and
+a read-only local web UI over the repository's Markdown task files.
 
 ## Why
 

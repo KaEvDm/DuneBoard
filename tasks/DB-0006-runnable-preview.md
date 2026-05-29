@@ -2,7 +2,7 @@
 id: DB-0006
 title: Build first runnable preview
 kind: task
-status: review
+status: done
 priority: P0
 parent: DB-0001
 depends_on: [DB-0002, DB-0003, DB-0005]
@@ -43,3 +43,4 @@ project-definition release.
   `feat/runnable-preview`.
 - 2026-05-29: Verified `pnpm check` and browser layout checks for desktop and
   mobile widths.
+- 2026-05-29: Released as `v0.2.0`.
