@@ -1,0 +1,24 @@
+{
+  "name": "duneboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first task graph for AI agents and humans.",
+  "license": "MIT",
+  "packageManager": "pnpm@10.25.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KaEvDm/DuneBoard.git"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "check": "pnpm test && pnpm build",
+    "dev": "pnpm --filter @duneboard/web dev",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.29",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.4"
+  }
+}
+
