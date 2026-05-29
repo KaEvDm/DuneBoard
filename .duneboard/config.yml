@@ -1,0 +1,23 @@
+name: DuneBoard
+version: 0.1
+task_roots:
+  - tasks
+id_prefix: DB
+default_status: draft
+workflow:
+  statuses:
+    - draft
+    - ready
+    - in_progress
+    - blocked
+    - review
+    - done
+    - canceled
+  done_statuses:
+    - done
+  active_statuses:
+    - ready
+    - in_progress
+    - blocked
+    - review
+

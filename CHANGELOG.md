@@ -11,6 +11,5 @@ once implementation releases begin.
 
 - Initial public project documentation.
 - Initial roadmap, architecture notes, and task schema draft.
-- Initial demo board written in DuneBoard Markdown task files.
+- Initial project board written in DuneBoard Markdown task files.
 - Initial agent skill draft.
-

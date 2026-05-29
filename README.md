@@ -33,6 +33,8 @@ tasks/
   DB-0001-project-mvp.md
   DB-0002-markdown-task-schema.md
   DB-0003-task-graph-engine.md
+.duneboard/
+  config.yml
 skills/
   duneboard-agent/
 apps/
@@ -77,7 +79,12 @@ Create a minimal task file format that agents and humans can edit safely.
 - [Roadmap](ROADMAP.md)
 - [Changelog](CHANGELOG.md)
 
+## Project Board
+
+This repository dogfoods the planned format in [tasks](tasks/). Those files are
+the first DuneBoard board and will become parser fixtures as the implementation
+starts.
+
 ## License
 
 MIT
-

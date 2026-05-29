@@ -33,6 +33,7 @@ jobs:
             docs/product-spec-v0.1.md
             docs/architecture.md
             docs/schema/task-file.md
+            .duneboard/config.yml
           )
 
           for file in "${required[@]}"; do
@@ -46,7 +47,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ids="$(find examples -name '*.md' -print0 | xargs -0 grep -hE '^id: DB-[0-9]{4}$' | sort || true)"
+          ids="$(find tasks -name '*.md' -print0 | xargs -0 grep -hE '^id: DB-[0-9]{4}$' | sort || true)"
           duplicates="$(printf '%s\n' "$ids" | uniq -d)"
           if [ -n "$duplicates" ]; then
             echo "Duplicate task IDs:"

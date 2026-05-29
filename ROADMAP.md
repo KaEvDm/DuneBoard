@@ -9,7 +9,7 @@ becomes broad.
 - Define the Markdown task file schema.
 - Define the task graph model.
 - Define the GitHub contribution and release workflow.
-- Add a demo board that can become the first parser fixture.
+- Add a project task board that can become the first parser fixture.
 
 ## v0.2 - Core Engine
 
@@ -47,4 +47,3 @@ becomes broad.
 - Provide migration rules.
 - Publish install and quickstart docs.
 - Tag the first stable release.
-
