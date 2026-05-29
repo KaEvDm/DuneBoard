@@ -7,7 +7,12 @@ once implementation releases begin.
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Added
+
+- Initial TypeScript workspace with `@duneboard/core` and `@duneboard/web`.
+- Markdown task parser, board index, ready queue, dependency blocked queue, and
+  graph validation tests.
+- Read-only Vite UI for local task browsing.
 
 ## [0.1.0] - 2026-05-29
 
