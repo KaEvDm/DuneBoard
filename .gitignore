@@ -1,0 +1,39 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Node / TypeScript
+node_modules/
+dist/
+build/
+coverage/
+.turbo/
+.vite/
+
+# Rust / Tauri
+target/
+src-tauri/target/
+Cargo.lock
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Local DuneBoard cache
+.duneboard/cache/
+

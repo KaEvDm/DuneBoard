@@ -1,0 +1,22 @@
+name: Task
+description: Track a concrete implementation or documentation task.
+title: "task: "
+labels: ["task"]
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: What concrete result should exist when this is done?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Checklist for completion.
+      value: |
+        - [ ] 
+    validations:
+      required: true
+

@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  repository-hygiene:
+    name: Repository hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check required project files
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            README.md
+            LICENSE
+            ROADMAP.md
+            CHANGELOG.md
+            CONTRIBUTING.md
+            CODE_OF_CONDUCT.md
+            SECURITY.md
+            docs/vision.md
+            docs/product-spec-v0.1.md
+            docs/architecture.md
+            docs/schema/task-file.md
+          )
+
+          for file in "${required[@]}"; do
+            test -f "$file" || {
+              echo "Missing required file: $file"
+              exit 1
+            }
+          done
+
+      - name: Check task IDs are unique
+        shell: bash
+        run: |
+          set -euo pipefail
+          ids="$(find examples -name '*.md' -print0 | xargs -0 grep -hE '^id: DB-[0-9]{4}$' | sort || true)"
+          duplicates="$(printf '%s\n' "$ids" | uniq -d)"
+          if [ -n "$duplicates" ]; then
+            echo "Duplicate task IDs:"
+            printf '%s\n' "$duplicates"
+            exit 1
+          fi

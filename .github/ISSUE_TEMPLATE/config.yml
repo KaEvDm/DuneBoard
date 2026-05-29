@@ -1,0 +1,6 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Project discussion
+    url: https://github.com/KaEvDm/DuneBoard/discussions
+    about: Use discussions for open-ended ideas once discussions are enabled.
+
