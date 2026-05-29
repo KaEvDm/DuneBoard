@@ -7,12 +7,22 @@ once implementation releases begin.
 
 ## [Unreleased]
 
+No unreleased changes yet.
+
+## [0.2.0] - 2026-05-29
+
 ### Added
 
 - Initial TypeScript workspace with `@duneboard/core` and `@duneboard/web`.
 - Markdown task parser, board index, ready queue, dependency blocked queue, and
   graph validation tests.
 - Read-only Vite UI for local task browsing.
+- README logo asset.
+
+### Changed
+
+- CI now installs workspace dependencies and runs `pnpm check`.
+- CI uses Node 24-ready GitHub Actions.
 
 ## [0.1.0] - 2026-05-29
 
@@ -23,5 +33,6 @@ once implementation releases begin.
 - Initial project board written in DuneBoard Markdown task files.
 - Initial agent skill draft.
 
-[Unreleased]: https://github.com/KaEvDm/DuneBoard/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/KaEvDm/DuneBoard/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/KaEvDm/DuneBoard/releases/tag/v0.1.0
