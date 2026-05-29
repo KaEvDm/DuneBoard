@@ -7,8 +7,9 @@ those files as a fast visual board, graph, and agent-ready execution queue.
 
 ## Status
 
-Planning and repository setup. The first public milestone is `v0.1`, focused on
-the Markdown task format, graph model, CLI workflow, and minimal UI design.
+Project definition release. The first public milestone, `v0.1.0`, defines the
+Markdown task format, graph model, CLI workflow direction, minimal UI direction,
+and public development workflow.
 
 ## Why
 
