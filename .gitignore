@@ -27,7 +27,6 @@ coverage/
 # Rust / Tauri
 target/
 src-tauri/target/
-Cargo.lock
 
 # Environment
 .env
@@ -36,4 +35,3 @@ Cargo.lock
 
 # Local DuneBoard cache
 .duneboard/cache/
-

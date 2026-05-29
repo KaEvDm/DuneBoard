@@ -86,6 +86,21 @@ This repository dogfoods the planned format in [tasks](tasks/). Those files are
 the first DuneBoard board and will become parser fixtures as the implementation
 starts.
 
+## Run Locally
+
+```bash
+pnpm install
+pnpm dev
+```
+
+The preview UI runs at `http://127.0.0.1:5173`.
+
+## Current Preview
+
+The first runnable preview is read-only. It parses the repository task files,
+builds a board index, and renders list, board, graph, ready queue, task detail,
+and validation views.
+
 ## License
 
 MIT
