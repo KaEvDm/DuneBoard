@@ -7,7 +7,10 @@ once implementation releases begin.
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Changed
+
+- Simplified the DuneBoard agent skill into a compact operational protocol.
+- Documented why DuneBoard should avoid excessive agent skill instructions.
 
 ## [0.4.0] - 2026-06-01
 
