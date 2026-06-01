@@ -7,7 +7,15 @@ once implementation releases begin.
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Added
+
+- Lightweight UI filters for status, task kind, label, and execution state.
+- Derived execution state badges in task rows, cards, graph nodes, and details.
+- Clickable task relationship navigation in the detail panel.
+
+### Changed
+
+- Task detail now shows file path, assignee, and acceptance progress.
 
 ## [0.3.0] - 2026-06-01
 
