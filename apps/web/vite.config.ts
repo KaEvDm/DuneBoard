@@ -1,18 +1,39 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
 
+type BoardProject = {
+  id: string;
+  isDefault?: boolean;
+  name: string;
+  root: string;
+};
+
+type ProjectConfig = {
+  projects?: Array<{
+    id?: string;
+    name?: string;
+    root?: string;
+  }>;
+};
+
+type NextFunction = (error?: unknown) => void;
+
+type MiddlewareServer = {
+  middlewares: {
+    use(handler: (request: IncomingMessage, response: ServerResponse, next: NextFunction) => void): void;
+  };
+};
+
 const workspaceRoot = fileURLToPath(new URL("../..", import.meta.url));
 const coreEntry = fileURLToPath(new URL("../../packages/core/src/index.ts", import.meta.url));
-const boardRoot = process.env.DUNEBOARD_ROOT ? path.resolve(process.env.DUNEBOARD_ROOT) : workspaceRoot;
-
-const virtualBoardModule = "virtual:duneboard-board";
-const resolvedVirtualBoardModule = `\0${virtualBoardModule}`;
+const localProjectConfig = path.join(workspaceRoot, ".duneboard", "projects.local.json");
 
 export default defineConfig({
-  plugins: [duneboardBoardPlugin(boardRoot), react()],
+  plugins: [duneboardProjectsPlugin(), react()],
   resolve: {
     alias: {
       "@duneboard/core": coreEntry
@@ -21,33 +42,107 @@ export default defineConfig({
   server: {
     port: 5173,
     fs: {
-      allow: [...new Set([workspaceRoot, boardRoot])]
+      allow: [workspaceRoot]
     }
   }
 });
 
-function duneboardBoardPlugin(root: string): Plugin {
+function duneboardProjectsPlugin(): Plugin {
   return {
-    name: "duneboard-board-data",
-    resolveId(id) {
-      return id === virtualBoardModule ? resolvedVirtualBoardModule : null;
+    name: "duneboard-projects-api",
+    configurePreviewServer(server) {
+      installProjectApi(server);
     },
-    load(id) {
-      if (id !== resolvedVirtualBoardModule) {
-        return null;
+    configureServer(server) {
+      installProjectApi(server);
+    }
+  };
+}
+
+function installProjectApi(server: MiddlewareServer): void {
+  server.middlewares.use((request: IncomingMessage, response: ServerResponse, next: NextFunction) => {
+    if (!request.url || request.method !== "GET") {
+      next();
+      return;
+    }
+
+    const url = new URL(request.url, "http://127.0.0.1");
+
+    try {
+      if (url.pathname === "/api/projects") {
+        writeJson(response, 200, { projects: loadProjects() });
+        return;
       }
 
-      const files = readBoardFiles(root);
+      const boardMatch = url.pathname.match(/^\/api\/projects\/([^/]+)\/board$/);
 
-      files.forEach((file) => {
-        this.addWatchFile(path.join(root, file.path));
-      });
+      if (boardMatch?.[1]) {
+        const projectId = decodeURIComponent(boardMatch[1]);
+        const project = loadProjects().find((candidate) => candidate.id === projectId);
 
-      return [
-        `export const boardRoot = ${JSON.stringify(root)};`,
-        `export const files = ${JSON.stringify(files)};`
-      ].join("\n");
+        if (!project) {
+          writeJson(response, 404, { error: `Project not found: ${projectId}` });
+          return;
+        }
+
+        writeJson(response, 200, {
+          project,
+          files: readBoardFiles(project.root)
+        });
+        return;
+      }
+    } catch (error) {
+      writeJson(response, 500, { error: error instanceof Error ? error.message : String(error) });
+      return;
     }
+
+    next();
+  });
+}
+
+function loadProjects(): BoardProject[] {
+  const projects = new Map<string, BoardProject>();
+  const defaultProject: BoardProject = {
+    id: "duneboard",
+    isDefault: true,
+    name: "DuneBoard",
+    root: workspaceRoot
+  };
+
+  projects.set(defaultProject.id, defaultProject);
+
+  readProjectConfig(localProjectConfig).forEach((project) => {
+    projects.set(project.id, project);
+  });
+
+  return [...projects.values()].filter((project) => existsSync(path.join(project.root, "tasks")));
+}
+
+function readProjectConfig(configPath: string): BoardProject[] {
+  if (!existsSync(configPath)) {
+    return [];
+  }
+
+  const parsed = JSON.parse(readFileSync(configPath, "utf8")) as ProjectConfig;
+
+  return (parsed.projects ?? [])
+    .map((project) => normalizeProject(project))
+    .filter((project): project is BoardProject => Boolean(project));
+}
+
+function normalizeProject(project: NonNullable<ProjectConfig["projects"]>[number]): BoardProject | null {
+  const id = project.id?.trim();
+  const name = project.name?.trim();
+  const root = project.root?.trim();
+
+  if (!id || !name || !root || !/^[a-z0-9-]+$/.test(id)) {
+    return null;
+  }
+
+  return {
+    id,
+    name,
+    root: path.resolve(workspaceRoot, root)
   };
 }
 
@@ -70,4 +165,10 @@ function readBoardFiles(root: string): Array<{ path: string; content: string }> 
       };
     })
     .sort((left, right) => left.path.localeCompare(right.path));
+}
+
+function writeJson(response: ServerResponse, status: number, value: unknown): void {
+  response.statusCode = status;
+  response.setHeader("Content-Type", "application/json; charset=utf-8");
+  response.end(JSON.stringify(value));
 }

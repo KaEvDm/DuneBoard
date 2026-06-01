@@ -11,9 +11,9 @@ those files as a fast visual board, graph, and agent-ready execution queue.
 
 ## Status
 
-External board UI release. `v0.7.0` lets the web UI open different DuneBoard
-project roots through `DUNEBOARD_ROOT`, while keeping the repository-local board
-as the default.
+Local project selector preview. The web UI can open configured DuneBoard
+project roots and switch between them from the sidebar while keeping the
+repository-local board as the default.
 
 ## Why
 
@@ -114,10 +114,11 @@ pnpm dev
 
 The preview UI runs at `http://127.0.0.1:5173`.
 
-To open another DuneBoard project, point the UI at a board root:
+To open another DuneBoard project, add it to the local project registry and
+select it in the UI:
 
 ```powershell
-$env:DUNEBOARD_ROOT = "C:\Users\evgen\source\repos\Achiever\DuneBoard"
+Copy-Item .duneboard\projects.example.json .duneboard\projects.local.json
 pnpm dev
 ```
 
