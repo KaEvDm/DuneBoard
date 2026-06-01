@@ -11,9 +11,9 @@ those files as a fast visual board, graph, and agent-ready execution queue.
 
 ## Status
 
-Minimal skill pack release. `v0.6.0` adds validated DuneBoard skills for normal
-agent task handling, Azure DevOps import, and local project cleanup while
-keeping the instructions small and DuneBoard-specific.
+External board UI release. `v0.7.0` lets the web UI open different DuneBoard
+project roots through `DUNEBOARD_ROOT`, while keeping the repository-local board
+as the default.
 
 ## Why
 
