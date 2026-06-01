@@ -79,6 +79,7 @@ Create a minimal task file format that agents and humans can edit safely.
 - [Product spec v0.1](docs/product-spec-v0.1.md)
 - [Architecture](docs/architecture.md)
 - [Task schema](docs/schema/task-file.md)
+- [CLI workflow](docs/cli-workflow.md)
 - [GitHub workflow](docs/github-workflow.md)
 - [Roadmap](ROADMAP.md)
 - [Changelog](CHANGELOG.md)
@@ -97,6 +98,14 @@ pnpm dev
 ```
 
 The preview UI runs at `http://127.0.0.1:5173`.
+
+CLI commands run through:
+
+```bash
+pnpm dune validate
+pnpm dune next
+pnpm dune task create --title "Example task"
+```
 
 ## Current Preview
 

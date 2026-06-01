@@ -1,0 +1,17 @@
+{
+  "name": "@duneboard/cli",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "DuneBoard command line workflow for agents and humans.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "start": "tsx src/index.ts",
+    "test": "echo \"No CLI tests yet\""
+  },
+  "dependencies": {
+    "@duneboard/core": "workspace:*",
+    "commander": "^14.0.1",
+    "yaml": "^2.8.0"
+  }
+}
