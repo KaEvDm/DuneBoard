@@ -7,7 +7,15 @@ once implementation releases begin.
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Added
+
+- Added a web UI project selector backed by a local project registry.
+- Added `.duneboard/projects.example.json` for local board configuration.
+
+### Changed
+
+- Replaced the `DUNEBOARD_ROOT` UI workflow with selecting configured projects
+  inside the UI.
 
 ## [0.7.0] - 2026-06-02
 

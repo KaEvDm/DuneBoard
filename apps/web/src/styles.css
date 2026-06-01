@@ -89,6 +89,27 @@ button {
   margin: 2px 0 0;
 }
 
+.project-selector {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.project-selector span {
+  color: #697386;
+  font-size: 12px;
+}
+
+.project-selector select {
+  background: #ffffff;
+  border: 1px solid #c8d0dc;
+  border-radius: 8px;
+  color: #20242c;
+  min-width: 0;
+  padding: 9px 10px;
+  width: 100%;
+}
+
 .metric-grid {
   display: grid;
   gap: 8px;

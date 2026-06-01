@@ -10,9 +10,9 @@ import {
   Search,
   X
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { executableTaskKinds, type ParsedTask, type TaskId, type TaskKind, type TaskStatus } from "@duneboard/core";
-import { board, boardRoot } from "./board-data";
+import { emptyBoard, fetchProjectBoard, fetchProjects, type BoardIndex, type BoardProject } from "./board-data";
 
 type ViewMode = "list" | "board" | "graph";
 type ExecutionState = "active" | "available" | "blocked" | "closed" | "container" | "draft" | "review" | "waiting";
@@ -70,18 +70,104 @@ const viewOptions: Array<{ icon: typeof ListTodo; id: ViewMode; label: string }>
   { icon: GitBranch, id: "graph", label: "Graph" }
 ];
 
+const projectStorageKey = "duneboard:selected-project";
+
 export function App() {
+  const [projects, setProjects] = useState<BoardProject[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState("");
+  const [activeProject, setActiveProject] = useState<BoardProject | undefined>();
+  const [board, setBoard] = useState<BoardIndex>(emptyBoard);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
+  const [loadError, setLoadError] = useState("");
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<TaskFilters>(emptyFilters);
   const [view, setView] = useState<ViewMode>("list");
-  const [selectedTaskId, setSelectedTaskId] = useState<TaskId | undefined>(
-    board.availableTaskIds[0] ?? board.tasks[0]?.id
-  );
+  const [selectedTaskId, setSelectedTaskId] = useState<TaskId | undefined>();
+
+  useEffect(() => {
+    let canceled = false;
+
+    setLoadState("loading");
+    fetchProjects()
+      .then((loadedProjects) => {
+        if (canceled) {
+          return;
+        }
+
+        setProjects(loadedProjects);
+
+        const storedProjectId = window.localStorage.getItem(projectStorageKey);
+        const nextProject =
+          loadedProjects.find((project) => project.id === storedProjectId) ??
+          loadedProjects.find((project) => project.isDefault) ??
+          loadedProjects[0];
+
+        if (!nextProject) {
+          setLoadState("error");
+          setLoadError("No DuneBoard projects are configured.");
+          return;
+        }
+
+        setSelectedProjectId(nextProject.id);
+      })
+      .catch((error: unknown) => {
+        if (canceled) {
+          return;
+        }
+
+        setLoadState("error");
+        setLoadError(error instanceof Error ? error.message : String(error));
+      });
+
+    return () => {
+      canceled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedProjectId) {
+      return;
+    }
+
+    let canceled = false;
+
+    setLoadState("loading");
+    fetchProjectBoard(selectedProjectId)
+      .then(({ board: loadedBoard, project }) => {
+        if (canceled) {
+          return;
+        }
+
+        setBoard(loadedBoard);
+        setActiveProject(project);
+        setSelectedTaskId(loadedBoard.availableTaskIds[0] ?? loadedBoard.tasks[0]?.id);
+        setQuery("");
+        setFilters(emptyFilters);
+        setLoadState("ready");
+        setLoadError("");
+        window.localStorage.setItem(projectStorageKey, project.id);
+      })
+      .catch((error: unknown) => {
+        if (canceled) {
+          return;
+        }
+
+        setBoard(emptyBoard);
+        setActiveProject(projects.find((project) => project.id === selectedProjectId));
+        setSelectedTaskId(undefined);
+        setLoadState("error");
+        setLoadError(error instanceof Error ? error.message : String(error));
+      });
+
+    return () => {
+      canceled = true;
+    };
+  }, [projects, selectedProjectId]);
 
   const selectedTask = selectedTaskId ? board.tasksById[selectedTaskId] : undefined;
   const labelOptions = useMemo(
     () => [...new Set(board.tasks.flatMap((task) => task.labels))].sort((left, right) => left.localeCompare(right)),
-    []
+    [board]
   );
   const hasActiveFilters = query.trim().length > 0 || Object.values(filters).some((value) => value !== "all");
 
@@ -90,8 +176,8 @@ export function App() {
 
     return board.tasks
       .filter((task) => taskMatchesQuery(task, normalizedQuery))
-      .filter((task) => taskMatchesFilters(task, filters));
-  }, [filters, query]);
+      .filter((task) => taskMatchesFilters(task, filters, board));
+  }, [board, filters, query]);
 
   const clearFilters = () => {
     setQuery("");
@@ -105,9 +191,16 @@ export function App() {
           <div className="brand-mark">DB</div>
           <div>
             <h1>DuneBoard</h1>
-            <p title={boardRoot}>{formatBoardRoot(boardRoot)}</p>
+            <p title={activeProject?.root}>{activeProject ? formatBoardRoot(activeProject.root) : "Loading board"}</p>
           </div>
         </div>
+
+        <ProjectSelector
+          disabled={loadState === "loading"}
+          onSelect={setSelectedProjectId}
+          projects={projects}
+          selectedProjectId={selectedProjectId}
+        />
 
         <div className="metric-grid">
           <Metric label="Tasks" value={board.tasks.length} />
@@ -143,13 +236,20 @@ export function App() {
             <span>Validation</span>
           </div>
           <div className="issue-list">
+            {loadState === "loading" ? <p className="muted">Loading project...</p> : null}
+            {loadState === "error" ? (
+              <div className="issue-row error">
+                <strong>load_error</strong>
+                <span>{loadError}</span>
+              </div>
+            ) : null}
             {board.issues.map((issue) => (
               <div className={`issue-row ${issue.severity}`} key={`${issue.code}-${issue.filePath}-${issue.message}`}>
                 <strong>{issue.code}</strong>
                 <span>{issue.message}</span>
               </div>
             ))}
-            {board.issues.length === 0 ? <p className="muted">No validation issues</p> : null}
+            {loadState === "ready" && board.issues.length === 0 ? <p className="muted">No validation issues</p> : null}
           </div>
         </section>
       </aside>
@@ -198,6 +298,7 @@ export function App() {
 
         {view === "list" ? (
           <ListView
+            board={board}
             onSelect={setSelectedTaskId}
             selectedTaskId={selectedTaskId}
             tasks={filteredTasks}
@@ -206,6 +307,7 @@ export function App() {
 
         {view === "board" ? (
           <BoardView
+            board={board}
             onSelect={setSelectedTaskId}
             selectedTaskId={selectedTaskId}
             tasks={filteredTasks}
@@ -214,6 +316,7 @@ export function App() {
 
         {view === "graph" ? (
           <GraphView
+            board={board}
             onSelect={setSelectedTaskId}
             selectedTaskId={selectedTaskId}
             tasks={filteredTasks}
@@ -221,7 +324,7 @@ export function App() {
         ) : null}
       </main>
 
-      <TaskDetail onSelectTask={setSelectedTaskId} task={selectedTask} />
+      <TaskDetail board={board} onSelectTask={setSelectedTaskId} task={selectedTask} />
     </div>
   );
 }
@@ -232,6 +335,35 @@ function Metric({ label, tone, value }: { label: string; tone?: "danger" | "ok";
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
+  );
+}
+
+function ProjectSelector({
+  disabled,
+  onSelect,
+  projects,
+  selectedProjectId
+}: {
+  disabled: boolean;
+  onSelect: (projectId: string) => void;
+  projects: BoardProject[];
+  selectedProjectId: string;
+}) {
+  return (
+    <label className="project-selector">
+      <span>Project</span>
+      <select
+        disabled={disabled || projects.length === 0}
+        onChange={(event) => onSelect(event.target.value)}
+        value={selectedProjectId}
+      >
+        {projects.map((project) => (
+          <option key={project.id} value={project.id}>
+            {project.name}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -318,10 +450,12 @@ function FilterBar({
 }
 
 function ListView({
+  board,
   onSelect,
   selectedTaskId,
   tasks
 }: {
+  board: BoardIndex;
   onSelect: (taskId: TaskId) => void;
   selectedTaskId: TaskId | undefined;
   tasks: ParsedTask[];
@@ -330,6 +464,7 @@ function ListView({
     <section className="task-list" aria-label="Task list">
       {tasks.map((task) => (
         <TaskRow
+          board={board}
           key={task.id}
           onSelect={onSelect}
           selected={task.id === selectedTaskId}
@@ -342,10 +477,12 @@ function ListView({
 }
 
 function BoardView({
+  board,
   onSelect,
   selectedTaskId,
   tasks
 }: {
+  board: BoardIndex;
   onSelect: (taskId: TaskId) => void;
   selectedTaskId: TaskId | undefined;
   tasks: ParsedTask[];
@@ -364,6 +501,7 @@ function BoardView({
             <div className="column-stack">
               {statusTasks.map((task) => (
                 <TaskCard
+                  board={board}
                   key={task.id}
                   onSelect={onSelect}
                   selected={task.id === selectedTaskId}
@@ -379,10 +517,12 @@ function BoardView({
 }
 
 function GraphView({
+  board,
   onSelect,
   selectedTaskId,
   tasks
 }: {
+  board: BoardIndex;
   onSelect: (taskId: TaskId) => void;
   selectedTaskId: TaskId | undefined;
   tasks: ParsedTask[];
@@ -404,7 +544,7 @@ function GraphView({
               >
                 <div className="node-topline">
                   <span>{task.id}</span>
-                  <ExecutionPill state={executionStateFor(task)} />
+                  <ExecutionPill state={executionStateFor(task, board)} />
                 </div>
                 <strong>{task.title}</strong>
                 <DependencyLine task={task} />
@@ -418,10 +558,12 @@ function GraphView({
 }
 
 function TaskRow({
+  board,
   onSelect,
   selected,
   task
 }: {
+  board: BoardIndex;
   onSelect: (taskId: TaskId) => void;
   selected: boolean;
   task: ParsedTask;
@@ -435,7 +577,7 @@ function TaskRow({
       <div className="row-meta">
         <PriorityPill priority={task.priority} />
         <StatusPill status={task.status} />
-        <ExecutionPill state={executionStateFor(task)} />
+        <ExecutionPill state={executionStateFor(task, board)} />
         <span>{task.kind}</span>
       </div>
       <DependencyLine task={task} />
@@ -444,10 +586,12 @@ function TaskRow({
 }
 
 function TaskCard({
+  board,
   onSelect,
   selected,
   task
 }: {
+  board: BoardIndex;
   onSelect: (taskId: TaskId) => void;
   selected: boolean;
   task: ParsedTask;
@@ -458,7 +602,7 @@ function TaskCard({
         <span className="task-id">{task.id}</span>
         <div className="card-pills">
           <PriorityPill priority={task.priority} />
-          <ExecutionPill state={executionStateFor(task)} />
+          <ExecutionPill state={executionStateFor(task, board)} />
         </div>
       </div>
       <strong>{task.title}</strong>
@@ -468,9 +612,11 @@ function TaskCard({
 }
 
 function TaskDetail({
+  board,
   onSelectTask,
   task
 }: {
+  board: BoardIndex;
   onSelectTask: (taskId: TaskId) => void;
   task: ParsedTask | undefined;
 }) {
@@ -485,7 +631,7 @@ function TaskDetail({
   const children = board.childrenById[task.id] ?? [];
   const dependents = board.dependentsById[task.id] ?? [];
   const completedCriteria = task.acceptance.filter((item) => item.checked).length;
-  const executionState = executionStateFor(task);
+  const executionState = executionStateFor(task, board);
 
   return (
     <section className="detail-panel">
@@ -526,11 +672,11 @@ function TaskDetail({
       </section>
 
       <section className="detail-section relation-grid">
-        <RelationList label="Parent" onSelect={onSelectTask} values={task.parent ? [task.parent] : []} />
-        <RelationList label="Depends on" onSelect={onSelectTask} values={task.depends_on} />
-        <RelationList label="Children" onSelect={onSelectTask} values={children} />
-        <RelationList label="Dependents" onSelect={onSelectTask} values={dependents} />
-        <RelationList label="Labels" values={task.labels} />
+        <RelationList board={board} label="Parent" onSelect={onSelectTask} values={task.parent ? [task.parent] : []} />
+        <RelationList board={board} label="Depends on" onSelect={onSelectTask} values={task.depends_on} />
+        <RelationList board={board} label="Children" onSelect={onSelectTask} values={children} />
+        <RelationList board={board} label="Dependents" onSelect={onSelectTask} values={dependents} />
+        <RelationList board={board} label="Labels" values={task.labels} />
       </section>
 
       <DetailSection title="Open Questions">{task.sections["Open Questions"]}</DetailSection>
@@ -549,10 +695,12 @@ function DetailSection({ children, title }: { children: string | undefined; titl
 }
 
 function RelationList({
+  board,
   label,
   onSelect,
   values
 }: {
+  board: BoardIndex;
   label: string;
   onSelect?: (taskId: TaskId) => void;
   values: string[];
@@ -633,7 +781,7 @@ function taskMatchesQuery(task: ParsedTask, normalizedQuery: string): boolean {
     .includes(normalizedQuery);
 }
 
-function taskMatchesFilters(task: ParsedTask, filters: TaskFilters): boolean {
+function taskMatchesFilters(task: ParsedTask, filters: TaskFilters, board: BoardIndex): boolean {
   if (filters.status !== "all" && task.status !== filters.status) {
     return false;
   }
@@ -646,14 +794,14 @@ function taskMatchesFilters(task: ParsedTask, filters: TaskFilters): boolean {
     return false;
   }
 
-  if (filters.execution !== "all" && executionStateFor(task) !== filters.execution) {
+  if (filters.execution !== "all" && executionStateFor(task, board) !== filters.execution) {
     return false;
   }
 
   return true;
 }
 
-function executionStateFor(task: ParsedTask): ExecutionState {
+function executionStateFor(task: ParsedTask, board: BoardIndex): ExecutionState {
   if (!executableTaskKinds.includes(task.kind)) {
     return "container";
   }

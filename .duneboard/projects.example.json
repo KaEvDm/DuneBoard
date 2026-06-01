@@ -1,0 +1,9 @@
+{
+  "projects": [
+    {
+      "id": "achiever",
+      "name": "Achiever",
+      "root": "C:\\path\\to\\Achiever\\DuneBoard"
+    }
+  ]
+}

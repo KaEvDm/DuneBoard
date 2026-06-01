@@ -35,3 +35,4 @@ src-tauri/target/
 
 # Local DuneBoard cache
 .duneboard/cache/
+.duneboard/projects.local.json
