@@ -3,13 +3,14 @@ import { buildBoardIndex } from "../src";
 
 type TaskFixtureOptions = {
   dependsOn?: string[];
+  kind?: string;
   status?: string;
 };
 
 const task = (id: string, options: TaskFixtureOptions = {}) => `---
 id: ${id}
 title: Task ${id}
-kind: task
+kind: ${options.kind ?? "task"}
 status: ${options.status ?? "ready"}
 priority: P1
 parent: null
@@ -88,5 +89,24 @@ describe("buildBoardIndex", () => {
         })
       ])
     );
+  });
+
+  it("excludes epics and features from the available execution queue", () => {
+    const board = buildBoardIndex([
+      {
+        path: "tasks/DB-0001-epic.md",
+        content: task("DB-0001", { kind: "epic" })
+      },
+      {
+        path: "tasks/DB-0002-feature.md",
+        content: task("DB-0002", { kind: "feature" })
+      },
+      {
+        path: "tasks/DB-0003-task.md",
+        content: task("DB-0003")
+      }
+    ]);
+
+    expect(board.availableTaskIds).toEqual(["DB-0003"]);
   });
 });
