@@ -7,7 +7,11 @@ once implementation releases begin.
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Added
+
+- Added web UI support for loading task files from an external
+  `DUNEBOARD_ROOT`.
+- Documented how to open different DuneBoard project roots in the web UI.
 
 ## [0.6.0] - 2026-06-01
 

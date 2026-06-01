@@ -81,6 +81,7 @@ Create a minimal task file format that agents and humans can edit safely.
 - [Architecture](docs/architecture.md)
 - [Task schema](docs/schema/task-file.md)
 - [CLI workflow](docs/cli-workflow.md)
+- [Web UI](docs/web-ui.md)
 - [Agent skill design](docs/agent-skill-design.md)
 - [GitHub workflow](docs/github-workflow.md)
 - [Roadmap](ROADMAP.md)
@@ -112,6 +113,13 @@ pnpm dev
 ```
 
 The preview UI runs at `http://127.0.0.1:5173`.
+
+To open another DuneBoard project, point the UI at a board root:
+
+```powershell
+$env:DUNEBOARD_ROOT = "C:\Users\evgen\source\repos\Achiever\DuneBoard"
+pnpm dev
+```
 
 CLI commands run through:
 

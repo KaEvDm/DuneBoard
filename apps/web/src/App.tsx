@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { executableTaskKinds, type ParsedTask, type TaskId, type TaskKind, type TaskStatus } from "@duneboard/core";
-import { board } from "./board-data";
+import { board, boardRoot } from "./board-data";
 
 type ViewMode = "list" | "board" | "graph";
 type ExecutionState = "active" | "available" | "blocked" | "closed" | "container" | "draft" | "review" | "waiting";
@@ -105,7 +105,7 @@ export function App() {
           <div className="brand-mark">DB</div>
           <div>
             <h1>DuneBoard</h1>
-            <p>Local task graph</p>
+            <p title={boardRoot}>{formatBoardRoot(boardRoot)}</p>
           </div>
         </div>
 
@@ -683,6 +683,12 @@ function executionStateFor(task: ParsedTask): ExecutionState {
   }
 
   return "waiting";
+}
+
+function formatBoardRoot(value: string): string {
+  const parts = value.split(/[\\/]+/).filter(Boolean);
+
+  return parts.slice(-2).join(" / ") || value;
 }
 
 function groupTasksByDependencyLevel(tasks: ParsedTask[]): ParsedTask[][] {
