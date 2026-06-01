@@ -11,8 +11,8 @@ those files as a fast visual board, graph, and agent-ready execution queue.
 
 ## Status
 
-First runnable preview. `v0.2.0` includes the TypeScript core parser/indexer and
-a read-only local web UI over the repository's Markdown task files.
+First agent CLI release. `v0.3.0` adds local commands for agents and humans to
+validate, inspect, create, link, claim, release, and complete Markdown tasks.
 
 ## Why
 
