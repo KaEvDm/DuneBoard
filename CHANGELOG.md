@@ -7,6 +7,10 @@ once implementation releases begin.
 
 ## [Unreleased]
 
+No unreleased changes yet.
+
+## [0.4.0] - 2026-06-01
+
 ### Added
 
 - Lightweight UI filters for status, task kind, label, and execution state.
@@ -55,7 +59,8 @@ once implementation releases begin.
 - Initial project board written in DuneBoard Markdown task files.
 - Initial agent skill draft.
 
-[Unreleased]: https://github.com/KaEvDm/DuneBoard/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/KaEvDm/DuneBoard/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/KaEvDm/DuneBoard/releases/tag/v0.1.0

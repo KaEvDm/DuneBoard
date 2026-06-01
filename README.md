@@ -11,8 +11,9 @@ those files as a fast visual board, graph, and agent-ready execution queue.
 
 ## Status
 
-First agent CLI release. `v0.3.0` adds local commands for agents and humans to
-validate, inspect, create, link, claim, release, and complete Markdown tasks.
+Useful read-only UI release. `v0.4.0` adds focused filters, derived execution
+state, richer task details, and relationship navigation while keeping the UI
+read-only.
 
 ## Why
 
