@@ -86,6 +86,18 @@ Create a minimal task file format that agents and humans can edit safely.
 - [Roadmap](ROADMAP.md)
 - [Changelog](CHANGELOG.md)
 
+## Skills
+
+Codex skills use `SKILL.md` as the required entrypoint. The skill name comes
+from the folder and YAML frontmatter.
+
+- [duneboard-agent](skills/duneboard-agent/SKILL.md): operate a DuneBoard board
+  safely.
+- [duneboard-import-ado](skills/duneboard-import-ado/SKILL.md): convert Azure
+  DevOps work into DuneBoard tasks.
+- [duneboard-organize-local-project](skills/duneboard-organize-local-project/SKILL.md):
+  clean up local specs and task notes into a DuneBoard board.
+
 ## Project Board
 
 This repository dogfoods the planned format in [tasks](tasks/). Those files are

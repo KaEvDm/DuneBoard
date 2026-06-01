@@ -1,0 +1,4 @@
+interface:
+  display_name: "DuneBoard Agent"
+  short_description: "Use DuneBoard task files safely from an agent workflow."
+  default_prompt: "Use the DuneBoard board in this repository to choose, update, or close the right task without inventing IDs or dependencies."

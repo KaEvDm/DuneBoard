@@ -1,0 +1,4 @@
+interface:
+  display_name: "DuneBoard ADO Import"
+  short_description: "Convert Azure DevOps work into DuneBoard task files."
+  default_prompt: "Convert this Azure DevOps work into DuneBoard tasks while preserving real hierarchy, dependencies, and open questions."
