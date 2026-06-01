@@ -11,9 +11,9 @@ those files as a fast visual board, graph, and agent-ready execution queue.
 
 ## Status
 
-Minimal agent skill protocol release. `v0.5.0` keeps the DuneBoard agent skill
-small and DuneBoard-specific, with a short protocol for validation, claiming,
-progress notes, blocking, and completion.
+Minimal skill pack release. `v0.6.0` adds validated DuneBoard skills for normal
+agent task handling, Azure DevOps import, and local project cleanup while
+keeping the instructions small and DuneBoard-specific.
 
 ## Why
 
