@@ -7,6 +7,10 @@ once implementation releases begin.
 
 ## [Unreleased]
 
+No unreleased changes yet.
+
+## [0.8.0] - 2026-06-02
+
 ### Added
 
 - Added a web UI project selector backed by a local project registry.
@@ -94,7 +98,8 @@ once implementation releases begin.
 - Initial project board written in DuneBoard Markdown task files.
 - Initial agent skill draft.
 
-[Unreleased]: https://github.com/KaEvDm/DuneBoard/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/KaEvDm/DuneBoard/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.4.0...v0.5.0

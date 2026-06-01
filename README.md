@@ -11,7 +11,7 @@ those files as a fast visual board, graph, and agent-ready execution queue.
 
 ## Status
 
-Local project selector preview. The web UI can open configured DuneBoard
+Project selector release. `v0.8.0` lets the web UI open configured DuneBoard
 project roots and switch between them from the sidebar while keeping the
 repository-local board as the default.
 
