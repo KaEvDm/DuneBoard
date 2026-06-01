@@ -1,5 +1,5 @@
 import { parseTaskFile } from "./task-parser";
-import type { BoardIssue, ParsedTask, TaskId } from "./task-schema";
+import { executableTaskKinds, type BoardIssue, type ParsedTask, type TaskId } from "./task-schema";
 
 export type BoardFile = {
   path: string;
@@ -90,11 +90,13 @@ export function buildBoardIndex(files: BoardFile[]): BoardIndex {
   issues.push(...detectDependencyCycles(tasksById));
 
   const availableTaskIds = tasks
+    .filter(isExecutableTask)
     .filter((task) => task.status === "ready")
     .filter((task) => task.depends_on.every((dependencyId) => tasksById[dependencyId]?.status === "done"))
     .map((task) => task.id);
 
   const dependencyBlockedTaskIds = tasks
+    .filter(isExecutableTask)
     .filter((task) => task.status === "ready")
     .filter((task) => task.depends_on.some((dependencyId) => tasksById[dependencyId]?.status !== "done"))
     .map((task) => task.id);
@@ -116,6 +118,10 @@ function sortTasks(tasks: ParsedTask[]): ParsedTask[] {
 
 function sortIdMap(map: Record<TaskId, TaskId[]>): Record<TaskId, TaskId[]> {
   return Object.fromEntries(Object.entries(map).map(([id, ids]) => [id, [...ids].sort()]));
+}
+
+function isExecutableTask(task: ParsedTask): boolean {
+  return executableTaskKinds.includes(task.kind);
 }
 
 function detectDependencyCycles(tasksById: Record<TaskId, ParsedTask>): BoardIssue[] {
@@ -163,4 +169,3 @@ function detectDependencyCycles(tasksById: Record<TaskId, ParsedTask>): BoardIss
 
   return issues;
 }
-

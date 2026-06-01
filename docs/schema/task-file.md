@@ -79,9 +79,13 @@ Tasks should use these sections in this order:
 
 These are computed, not stored:
 
-- `available`: status is `ready` and all dependencies are `done`.
+- `available`: task kind is executable, status is `ready`, and all dependencies
+  are `done`.
 - `dependency_blocked`: at least one dependency is not `done`.
 - `orphan`: task violates parent rules.
 - `cycle_error`: dependency graph contains a cycle.
 - `stale`: task has not changed for a configured interval.
 
+Executable kinds are `story`, `task`, `bug`, `spike`, `chore`, and `decision`.
+`epic` and `feature` are planning containers and do not appear in the execution
+queue.

@@ -47,6 +47,8 @@ export type TaskStatus = z.infer<typeof taskStatusSchema>;
 export type TaskPriority = z.infer<typeof taskPrioritySchema>;
 export type TaskFrontmatter = z.infer<typeof taskFrontmatterSchema>;
 
+export const executableTaskKinds: readonly TaskKind[] = ["story", "task", "bug", "spike", "chore", "decision"];
+
 export type AcceptanceItem = {
   checked: boolean;
   text: string;
@@ -69,4 +71,3 @@ export type BoardIssue = {
   filePath?: string;
   taskId?: string;
 };
-
