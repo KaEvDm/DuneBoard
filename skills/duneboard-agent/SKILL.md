@@ -1,3 +1,8 @@
+---
+name: duneboard-agent
+description: Work with DuneBoard task files in a repository. Use when Codex needs to plan, take, create, update, block, release, or close DuneBoard work; run `pnpm dune`; or preserve DuneBoard Markdown task history.
+---
+
 # DuneBoard Agent Skill
 
 Use this skill when a repository has DuneBoard task files and the user asks you

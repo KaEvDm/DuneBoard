@@ -7,7 +7,15 @@ once implementation releases begin.
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Added
+
+- Added minimal skills for importing Azure DevOps work into DuneBoard and
+  organizing local project specs/tasks into a DuneBoard board.
+
+### Changed
+
+- Added valid Codex skill metadata to the DuneBoard agent skill.
+- Clarified why DuneBoard skills use `SKILL.md` as the required entrypoint.
 
 ## [0.5.0] - 2026-06-01
 

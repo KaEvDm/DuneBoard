@@ -1,0 +1,4 @@
+interface:
+  display_name: "DuneBoard Local Organizer"
+  short_description: "Turn local specs and task notes into a clean DuneBoard board."
+  default_prompt: "Organize this local project into DuneBoard tasks and specs without inventing unnecessary workflow or dependencies."
