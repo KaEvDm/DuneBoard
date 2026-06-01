@@ -7,12 +7,21 @@ once implementation releases begin.
 
 ## [Unreleased]
 
+No unreleased changes yet.
+
+## [0.3.0] - 2026-06-01
+
 ### Added
 
 - Initial `@duneboard/cli` package.
 - CLI commands for validation, ready queue, task listing, task detail, task
   creation, notes, claim, release, done, and direct status updates.
 - CLI workflow documentation for agents and humans.
+
+### Changed
+
+- Ready queue now excludes planning containers (`epic` and `feature`) so agents
+  only see executable task kinds.
 
 ## [0.2.0] - 2026-05-29
 
@@ -38,6 +47,7 @@ once implementation releases begin.
 - Initial project board written in DuneBoard Markdown task files.
 - Initial agent skill draft.
 
-[Unreleased]: https://github.com/KaEvDm/DuneBoard/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/KaEvDm/DuneBoard/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/KaEvDm/DuneBoard/releases/tag/v0.1.0
