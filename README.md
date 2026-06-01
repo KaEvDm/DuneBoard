@@ -11,9 +11,9 @@ those files as a fast visual board, graph, and agent-ready execution queue.
 
 ## Status
 
-Useful read-only UI release. `v0.4.0` adds focused filters, derived execution
-state, richer task details, and relationship navigation while keeping the UI
-read-only.
+Minimal agent skill protocol release. `v0.5.0` keeps the DuneBoard agent skill
+small and DuneBoard-specific, with a short protocol for validation, claiming,
+progress notes, blocking, and completion.
 
 ## Why
 
