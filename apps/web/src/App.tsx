@@ -3,15 +3,26 @@ import {
   CheckCircle2,
   CircleDot,
   Columns3,
+  FileText,
+  Filter,
   GitBranch,
   ListTodo,
-  Search
+  Search,
+  X
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { ParsedTask, TaskId, TaskStatus } from "@duneboard/core";
+import { executableTaskKinds, type ParsedTask, type TaskId, type TaskKind, type TaskStatus } from "@duneboard/core";
 import { board } from "./board-data";
 
 type ViewMode = "list" | "board" | "graph";
+type ExecutionState = "active" | "available" | "blocked" | "closed" | "container" | "draft" | "review" | "waiting";
+type FilterValue<T extends string> = "all" | T;
+type TaskFilters = {
+  execution: FilterValue<ExecutionState>;
+  kind: FilterValue<TaskKind>;
+  label: string;
+  status: FilterValue<TaskStatus>;
+};
 
 const statusOrder: TaskStatus[] = [
   "draft",
@@ -33,6 +44,26 @@ const statusLabels: Record<TaskStatus, string> = {
   review: "Review"
 };
 
+const kindOrder: TaskKind[] = ["epic", "feature", "story", "task", "bug", "spike", "chore", "decision"];
+
+const executionLabels: Record<ExecutionState, string> = {
+  active: "Active",
+  available: "Available",
+  blocked: "Blocked",
+  closed: "Closed",
+  container: "Container",
+  draft: "Draft",
+  review: "Review",
+  waiting: "Waiting"
+};
+
+const emptyFilters: TaskFilters = {
+  execution: "all",
+  kind: "all",
+  label: "all",
+  status: "all"
+};
+
 const viewOptions: Array<{ icon: typeof ListTodo; id: ViewMode; label: string }> = [
   { icon: ListTodo, id: "list", label: "List" },
   { icon: Columns3, id: "board", label: "Board" },
@@ -41,35 +72,31 @@ const viewOptions: Array<{ icon: typeof ListTodo; id: ViewMode; label: string }>
 
 export function App() {
   const [query, setQuery] = useState("");
+  const [filters, setFilters] = useState<TaskFilters>(emptyFilters);
   const [view, setView] = useState<ViewMode>("list");
   const [selectedTaskId, setSelectedTaskId] = useState<TaskId | undefined>(
     board.availableTaskIds[0] ?? board.tasks[0]?.id
   );
 
   const selectedTask = selectedTaskId ? board.tasksById[selectedTaskId] : undefined;
+  const labelOptions = useMemo(
+    () => [...new Set(board.tasks.flatMap((task) => task.labels))].sort((left, right) => left.localeCompare(right)),
+    []
+  );
+  const hasActiveFilters = query.trim().length > 0 || Object.values(filters).some((value) => value !== "all");
 
   const filteredTasks = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    if (!normalizedQuery) {
-      return board.tasks;
-    }
+    return board.tasks
+      .filter((task) => taskMatchesQuery(task, normalizedQuery))
+      .filter((task) => taskMatchesFilters(task, filters));
+  }, [filters, query]);
 
-    return board.tasks.filter((task) => {
-      return [
-        task.id,
-        task.title,
-        task.kind,
-        task.status,
-        task.priority,
-        ...task.labels,
-        task.sections.Goal ?? ""
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(normalizedQuery);
-    });
-  }, [query]);
+  const clearFilters = () => {
+    setQuery("");
+    setFilters(emptyFilters);
+  };
 
   return (
     <div className="app-shell">
@@ -159,6 +186,16 @@ export function App() {
           </label>
         </div>
 
+        <FilterBar
+          filters={filters}
+          hasActiveFilters={hasActiveFilters}
+          labelOptions={labelOptions}
+          onClear={clearFilters}
+          onFiltersChange={setFilters}
+          resultCount={filteredTasks.length}
+          totalCount={board.tasks.length}
+        />
+
         {view === "list" ? (
           <ListView
             onSelect={setSelectedTaskId}
@@ -184,7 +221,7 @@ export function App() {
         ) : null}
       </main>
 
-      <TaskDetail task={selectedTask} />
+      <TaskDetail onSelectTask={setSelectedTaskId} task={selectedTask} />
     </div>
   );
 }
@@ -194,6 +231,88 @@ function Metric({ label, tone, value }: { label: string; tone?: "danger" | "ok";
     <div className={`metric ${tone ?? ""}`}>
       <span>{label}</span>
       <strong>{value}</strong>
+    </div>
+  );
+}
+
+function FilterBar({
+  filters,
+  hasActiveFilters,
+  labelOptions,
+  onClear,
+  onFiltersChange,
+  resultCount,
+  totalCount
+}: {
+  filters: TaskFilters;
+  hasActiveFilters: boolean;
+  labelOptions: string[];
+  onClear: () => void;
+  onFiltersChange: (filters: TaskFilters) => void;
+  resultCount: number;
+  totalCount: number;
+}) {
+  const setFilter = <Key extends keyof TaskFilters>(key: Key, value: TaskFilters[Key]) => {
+    onFiltersChange({ ...filters, [key]: value });
+  };
+
+  return (
+    <div className="filter-row">
+      <Filter size={17} />
+      <select
+        aria-label="Status"
+        onChange={(event) => setFilter("status", event.target.value as TaskFilters["status"])}
+        value={filters.status}
+      >
+        <option value="all">All statuses</option>
+        {statusOrder.map((status) => (
+          <option key={status} value={status}>
+            {statusLabels[status]}
+          </option>
+        ))}
+      </select>
+      <select
+        aria-label="Kind"
+        onChange={(event) => setFilter("kind", event.target.value as TaskFilters["kind"])}
+        value={filters.kind}
+      >
+        <option value="all">All kinds</option>
+        {kindOrder.map((kind) => (
+          <option key={kind} value={kind}>
+            {kind}
+          </option>
+        ))}
+      </select>
+      <select
+        aria-label="Label"
+        onChange={(event) => setFilter("label", event.target.value)}
+        value={filters.label}
+      >
+        <option value="all">All labels</option>
+        {labelOptions.map((label) => (
+          <option key={label} value={label}>
+            {label}
+          </option>
+        ))}
+      </select>
+      <select
+        aria-label="Execution state"
+        onChange={(event) => setFilter("execution", event.target.value as TaskFilters["execution"])}
+        value={filters.execution}
+      >
+        <option value="all">All states</option>
+        {Object.entries(executionLabels).map(([state, label]) => (
+          <option key={state} value={state}>
+            {label}
+          </option>
+        ))}
+      </select>
+      <span className="result-count">
+        {resultCount}/{totalCount}
+      </span>
+      <button className="clear-filters" disabled={!hasActiveFilters} onClick={onClear} title="Clear filters" type="button">
+        <X size={16} />
+      </button>
     </div>
   );
 }
@@ -217,6 +336,7 @@ function ListView({
           task={task}
         />
       ))}
+      {tasks.length === 0 ? <EmptyState /> : null}
     </section>
   );
 }
@@ -284,7 +404,7 @@ function GraphView({
               >
                 <div className="node-topline">
                   <span>{task.id}</span>
-                  <StatusPill status={task.status} />
+                  <ExecutionPill state={executionStateFor(task)} />
                 </div>
                 <strong>{task.title}</strong>
                 <DependencyLine task={task} />
@@ -315,6 +435,7 @@ function TaskRow({
       <div className="row-meta">
         <PriorityPill priority={task.priority} />
         <StatusPill status={task.status} />
+        <ExecutionPill state={executionStateFor(task)} />
         <span>{task.kind}</span>
       </div>
       <DependencyLine task={task} />
@@ -335,7 +456,10 @@ function TaskCard({
     <button className={`task-card ${selected ? "selected" : ""}`} onClick={() => onSelect(task.id)} type="button">
       <div className="card-topline">
         <span className="task-id">{task.id}</span>
-        <PriorityPill priority={task.priority} />
+        <div className="card-pills">
+          <PriorityPill priority={task.priority} />
+          <ExecutionPill state={executionStateFor(task)} />
+        </div>
       </div>
       <strong>{task.title}</strong>
       <DependencyLine task={task} />
@@ -343,7 +467,13 @@ function TaskCard({
   );
 }
 
-function TaskDetail({ task }: { task: ParsedTask | undefined }) {
+function TaskDetail({
+  onSelectTask,
+  task
+}: {
+  onSelectTask: (taskId: TaskId) => void;
+  task: ParsedTask | undefined;
+}) {
   if (!task) {
     return (
       <section className="detail-panel">
@@ -354,6 +484,8 @@ function TaskDetail({ task }: { task: ParsedTask | undefined }) {
 
   const children = board.childrenById[task.id] ?? [];
   const dependents = board.dependentsById[task.id] ?? [];
+  const completedCriteria = task.acceptance.filter((item) => item.checked).length;
+  const executionState = executionStateFor(task);
 
   return (
     <section className="detail-panel">
@@ -363,14 +495,25 @@ function TaskDetail({ task }: { task: ParsedTask | undefined }) {
         <div className="detail-pills">
           <PriorityPill priority={task.priority} />
           <StatusPill status={task.status} />
+          <ExecutionPill state={executionState} />
           <span className="soft-pill">{task.kind}</span>
+        </div>
+        <div className="detail-meta">
+          <span>
+            <FileText size={15} />
+            {task.filePath}
+          </span>
+          <span>Assignee: {task.assignee ?? "none"}</span>
         </div>
       </div>
 
       <DetailSection title="Goal">{task.sections.Goal}</DetailSection>
 
       <section className="detail-section">
-        <h3>Acceptance Criteria</h3>
+        <div className="detail-section-heading">
+          <h3>Acceptance Criteria</h3>
+          <span>{task.acceptance.length ? `${completedCriteria}/${task.acceptance.length}` : "0/0"}</span>
+        </div>
         <div className="acceptance-list">
           {task.acceptance.map((item) => (
             <div className="acceptance-item" key={item.text}>
@@ -383,9 +526,10 @@ function TaskDetail({ task }: { task: ParsedTask | undefined }) {
       </section>
 
       <section className="detail-section relation-grid">
-        <RelationList label="Depends on" values={task.depends_on} />
-        <RelationList label="Children" values={children} />
-        <RelationList label="Dependents" values={dependents} />
+        <RelationList label="Parent" onSelect={onSelectTask} values={task.parent ? [task.parent] : []} />
+        <RelationList label="Depends on" onSelect={onSelectTask} values={task.depends_on} />
+        <RelationList label="Children" onSelect={onSelectTask} values={children} />
+        <RelationList label="Dependents" onSelect={onSelectTask} values={dependents} />
         <RelationList label="Labels" values={task.labels} />
       </section>
 
@@ -404,16 +548,36 @@ function DetailSection({ children, title }: { children: string | undefined; titl
   );
 }
 
-function RelationList({ label, values }: { label: string; values: string[] }) {
+function RelationList({
+  label,
+  onSelect,
+  values
+}: {
+  label: string;
+  onSelect?: (taskId: TaskId) => void;
+  values: string[];
+}) {
   return (
     <div className="relation-list">
       <h3>{label}</h3>
       <div>
-        {values.map((value) => (
-          <span className="soft-pill" key={value}>
-            {value}
-          </span>
-        ))}
+        {values.map((value) => {
+          const relatedTask = board.tasksById[value as TaskId];
+
+          if (relatedTask && onSelect) {
+            return (
+              <button className="relation-pill" key={value} onClick={() => onSelect(value as TaskId)} type="button">
+                {value}
+              </button>
+            );
+          }
+
+          return (
+            <span className="soft-pill" key={value}>
+              {value}
+            </span>
+          );
+        })}
         {values.length === 0 ? <span className="muted">None</span> : null}
       </div>
     </div>
@@ -434,6 +598,91 @@ function PriorityPill({ priority }: { priority: string }) {
 
 function StatusPill({ status }: { status: TaskStatus }) {
   return <span className={`status-pill ${status}`}>{statusLabels[status]}</span>;
+}
+
+function ExecutionPill({ state }: { state: ExecutionState }) {
+  return <span className={`execution-pill ${state}`}>{executionLabels[state]}</span>;
+}
+
+function EmptyState() {
+  return (
+    <div className="empty-state">
+      <strong>No matching tasks</strong>
+      <span>Adjust filters or search.</span>
+    </div>
+  );
+}
+
+function taskMatchesQuery(task: ParsedTask, normalizedQuery: string): boolean {
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  return [
+    task.id,
+    task.title,
+    task.kind,
+    task.status,
+    task.priority,
+    ...task.labels,
+    task.sections.Goal ?? "",
+    task.sections["Open Questions"] ?? ""
+  ]
+    .join(" ")
+    .toLowerCase()
+    .includes(normalizedQuery);
+}
+
+function taskMatchesFilters(task: ParsedTask, filters: TaskFilters): boolean {
+  if (filters.status !== "all" && task.status !== filters.status) {
+    return false;
+  }
+
+  if (filters.kind !== "all" && task.kind !== filters.kind) {
+    return false;
+  }
+
+  if (filters.label !== "all" && !task.labels.includes(filters.label)) {
+    return false;
+  }
+
+  if (filters.execution !== "all" && executionStateFor(task) !== filters.execution) {
+    return false;
+  }
+
+  return true;
+}
+
+function executionStateFor(task: ParsedTask): ExecutionState {
+  if (!executableTaskKinds.includes(task.kind)) {
+    return "container";
+  }
+
+  if (task.status === "in_progress") {
+    return "active";
+  }
+
+  if (task.status === "blocked") {
+    return "blocked";
+  }
+
+  if (task.status === "review") {
+    return "review";
+  }
+
+  if (task.status === "done" || task.status === "canceled") {
+    return "closed";
+  }
+
+  if (task.status === "draft") {
+    return "draft";
+  }
+
+  if (board.availableTaskIds.includes(task.id)) {
+    return "available";
+  }
+
+  return "waiting";
 }
 
 function groupTasksByDependencyLevel(tasks: ParsedTask[]): ParsedTask[][] {
