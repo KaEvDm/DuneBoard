@@ -7,7 +7,12 @@ once implementation releases begin.
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Added
+
+- Initial `@duneboard/cli` package.
+- CLI commands for validation, ready queue, task listing, task detail, task
+  creation, notes, claim, release, done, and direct status updates.
+- CLI workflow documentation for agents and humans.
 
 ## [0.2.0] - 2026-05-29
 
