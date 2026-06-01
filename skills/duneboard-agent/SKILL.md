@@ -1,56 +1,71 @@
 # DuneBoard Agent Skill
 
-Use this skill when working inside a repository that uses DuneBoard task files.
+Use this skill when a repository has DuneBoard task files and the user asks you
+to plan, take, update, or close DuneBoard work.
 
-## Source of Truth
+## Contract
 
-Task state lives in Markdown files. Preserve frontmatter fields and standard
-sections. Prefer DuneBoard CLI commands once they exist.
+- Markdown task files are the source of truth.
+- Prefer `pnpm dune ...` commands over manual frontmatter edits.
+- Do not invent task IDs; let `pnpm dune task create` allocate them.
+- Do not add dependencies unless they are real sequencing constraints.
+- Keep work-log updates short, dated, and factual.
 
-## Before Taking Work
+## Start
 
-1. Run or inspect the board validator when available.
-2. Find tasks that are `ready` and have all dependencies `done`.
-3. Prefer the highest-priority available task.
-4. Claim the task before editing implementation files.
-
-## Updating a Task
-
-Keep updates small and factual:
-
-- Append progress to `## Work Log`.
-- Add unresolved decisions to `## Open Questions`.
-- Mark acceptance criteria only when verified.
-- Move to `blocked` when the next action requires external input.
-- Move to `review` when implementation is complete but not accepted.
-- Move to `done` only after acceptance criteria are satisfied.
-
-## Decomposing Features
-
-When turning a feature request into tasks:
-
-1. Create one `feature` or `story` parent task.
-2. Create child tasks for independent implementation units.
-3. Use `depends_on` only for real sequencing constraints.
-4. Avoid dependencies between tasks that can be done in parallel.
-5. Add acceptance criteria to every executable task.
-6. Add open questions instead of guessing product decisions.
-
-## Work Log Format
-
-Use dated entries:
-
-```markdown
-- 2026-05-29: Claimed task. Parsed current schema docs and identified missing
-  validation rules.
+```bash
+pnpm dune validate
+pnpm dune next
 ```
 
-## Completion Standard
+If `next` returns executable tasks, pick the highest-priority task that matches
+the user's request and claim it:
 
-A task is complete when:
+```bash
+pnpm dune task claim DB-0007 --agent <agent-name>
+```
 
-- acceptance criteria are checked
-- relevant tests or verification notes exist
-- no new unresolved blocker was introduced
-- the task file includes a short completion note
+If `next` is empty and new work is needed, create a task with explicit parent,
+priority, labels, and dependencies:
 
+```bash
+pnpm dune task create --title "Task title" --kind task --status ready --priority P1 --parent DB-0001 --depends-on DB-0007 --label area
+```
+
+## Update
+
+Use notes for progress that should survive in Git:
+
+```bash
+pnpm dune task note DB-0007 "Implemented parser checks and ran pnpm check."
+```
+
+Use `blocked` only when no local next action remains:
+
+```bash
+pnpm dune task release DB-0007 --status blocked
+```
+
+## Close
+
+Only close a task when acceptance criteria are satisfied and verification has
+run or the remaining risk is explicitly stated:
+
+```bash
+pnpm dune task done DB-0007 --summary "Validated with pnpm check."
+```
+
+## Manual Edits
+
+Manual edits are acceptable for body text and acceptance criteria. Preserve:
+
+- YAML frontmatter shape
+- `id`
+- standard sections
+- existing work-log history
+
+Run validation after manual edits:
+
+```bash
+pnpm dune validate
+```

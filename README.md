@@ -81,6 +81,7 @@ Create a minimal task file format that agents and humans can edit safely.
 - [Architecture](docs/architecture.md)
 - [Task schema](docs/schema/task-file.md)
 - [CLI workflow](docs/cli-workflow.md)
+- [Agent skill design](docs/agent-skill-design.md)
 - [GitHub workflow](docs/github-workflow.md)
 - [Roadmap](ROADMAP.md)
 - [Changelog](CHANGELOG.md)
