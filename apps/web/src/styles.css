@@ -30,7 +30,8 @@ button {
 .app-shell {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr) 380px;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .sidebar,
@@ -42,6 +43,7 @@ button {
 
 .sidebar {
   border-width: 0 1px 0 0;
+  overflow: auto;
   padding: 20px;
 }
 
@@ -388,14 +390,9 @@ button {
   justify-content: flex-end;
 }
 
-.row-meta > span:last-child {
-  color: #697386;
-  text-transform: capitalize;
-}
-
 .priority-pill,
 .execution-pill,
-.relation-pill,
+.kind-pill,
 .soft-pill,
 .status-pill {
   align-items: center;
@@ -405,16 +402,82 @@ button {
   font-weight: 700;
   min-height: 24px;
   padding: 0 9px;
+  white-space: nowrap;
 }
 
-.relation-pill {
+.kind-pill {
+  gap: 5px;
+}
+
+.kind-pill svg {
+  flex: 0 0 auto;
+}
+
+.kind-pill.epic {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
+.kind-pill.feature {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.kind-pill.story {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.kind-pill.task {
+  background: #eef2f7;
+  color: #475467;
+}
+
+.kind-pill.bug {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.kind-pill.spike {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.kind-pill.chore {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.kind-pill.decision {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.relation-link {
   background: #eff6ff;
-  border: 0;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
   color: #1d4ed8;
+  display: grid;
+  gap: 2px;
+  max-width: 100%;
+  padding: 7px 9px;
+  text-align: left;
 }
 
-.relation-pill:hover {
+.relation-link:hover {
   background: #dbeafe;
+}
+
+.relation-link strong,
+.relation-link span {
+  overflow-wrap: anywhere;
+}
+
+.relation-link span {
+  color: #3b4351;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .priority-pill {
@@ -484,8 +547,8 @@ button {
 }
 
 .execution-pill.closed {
-  background: #ccfbf1;
-  color: #0f766e;
+  background: #f3f4f6;
+  color: #4b5563;
 }
 
 .execution-pill.container {
@@ -542,10 +605,13 @@ button {
 }
 
 .graph-view {
+  min-width: 860px;
+}
+
+.graph-columns {
   align-items: stretch;
   display: flex;
   gap: 14px;
-  min-width: 860px;
 }
 
 .graph-level {
@@ -558,9 +624,27 @@ button {
 }
 
 .level-label {
+  align-items: center;
   color: #697386;
+  display: flex;
   font-size: 12px;
   font-weight: 800;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.level-label span {
+  overflow-wrap: anywhere;
+}
+
+.level-label small {
+  background: #eef2f7;
+  border-radius: 999px;
+  color: #475467;
+  font-size: 11px;
+  min-width: 24px;
+  padding: 2px 7px;
+  text-align: center;
 }
 
 .graph-node {
@@ -670,7 +754,7 @@ button {
 }
 
 .relation-list > div {
-  align-items: center;
+  align-items: stretch;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -688,6 +772,9 @@ button {
 @media (max-width: 1180px) {
   .app-shell {
     grid-template-columns: 250px minmax(0, 1fr);
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
   }
 
   .detail-panel {
