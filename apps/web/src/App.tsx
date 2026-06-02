@@ -23,12 +23,12 @@ import { executableTaskKinds, type ParsedTask, type TaskId, type TaskKind, type 
 import { emptyBoard, fetchProjectBoard, fetchProjects, type BoardIndex, type BoardProject } from "./board-data";
 
 type ViewMode = "list" | "board" | "graph";
-type ExecutionState = "active" | "available" | "blocked" | "closed" | "container" | "draft" | "review" | "waiting";
+type ReadinessState = "available" | "planning" | "waiting";
 type FilterValue<T extends string> = "all" | T;
 type TaskFilters = {
-  execution: FilterValue<ExecutionState>;
   kind: FilterValue<TaskKind>;
   label: string;
+  readiness: FilterValue<ReadinessState>;
   status: FilterValue<TaskStatus>;
 };
 
@@ -54,15 +54,10 @@ const statusLabels: Record<TaskStatus, string> = {
 
 const kindOrder: TaskKind[] = ["epic", "feature", "story", "task", "bug", "spike", "chore", "decision"];
 
-const executionLabels: Record<ExecutionState, string> = {
-  active: "In work",
+const readinessLabels: Record<ReadinessState, string> = {
   available: "Available",
-  blocked: "Blocked",
-  closed: "Not active",
-  container: "Planning",
-  draft: "Not ready",
-  review: "In review",
-  waiting: "Waiting"
+  planning: "Planning container",
+  waiting: "Waiting on deps"
 };
 
 const kindMeta: Record<TaskKind, { icon: typeof CircleDot; label: string }> = {
@@ -77,9 +72,9 @@ const kindMeta: Record<TaskKind, { icon: typeof CircleDot; label: string }> = {
 };
 
 const emptyFilters: TaskFilters = {
-  execution: "all",
   kind: "all",
   label: "all",
+  readiness: "all",
   status: "all"
 };
 
@@ -447,12 +442,12 @@ function FilterBar({
         ))}
       </select>
       <select
-        aria-label="Queue state"
-        onChange={(event) => setFilter("execution", event.target.value as TaskFilters["execution"])}
-        value={filters.execution}
+        aria-label="Readiness"
+        onChange={(event) => setFilter("readiness", event.target.value as TaskFilters["readiness"])}
+        value={filters.readiness}
       >
-        <option value="all">All queue states</option>
-        {Object.entries(executionLabels).map(([state, label]) => (
+        <option value="all">All readiness</option>
+        {Object.entries(readinessLabels).map(([state, label]) => (
           <option key={state} value={state}>
             {label}
           </option>
@@ -567,7 +562,7 @@ function GraphView({
                 >
                   <div className="node-topline">
                     <span>{task.id}</span>
-                    <ExecutionPill state={executionStateFor(task, board)} />
+                    <ReadinessPill state={readinessFor(task, board)} />
                   </div>
                   <strong>{task.title}</strong>
                   <KindPill kind={task.kind} />
@@ -602,7 +597,7 @@ function TaskRow({
       <div className="row-meta">
         <PriorityPill priority={task.priority} />
         <StatusPill status={task.status} />
-        <ExecutionPill state={executionStateFor(task, board)} />
+        <ReadinessPill state={readinessFor(task, board)} />
         <KindPill kind={task.kind} />
       </div>
       <DependencyLine task={task} />
@@ -628,7 +623,7 @@ function TaskCard({
         <div className="card-pills">
           <PriorityPill priority={task.priority} />
           <KindPill kind={task.kind} />
-          <ExecutionPill state={executionStateFor(task, board)} />
+          <ReadinessPill state={readinessFor(task, board)} />
         </div>
       </div>
       <strong>{task.title}</strong>
@@ -663,7 +658,7 @@ function TaskDetail({
   const children = board.childrenById[task.id] ?? [];
   const dependents = board.dependentsById[task.id] ?? [];
   const completedCriteria = task.acceptance.filter((item) => item.checked).length;
-  const executionState = executionStateFor(task, board);
+  const readiness = readinessFor(task, board);
 
   return (
     <section className="detail-panel" ref={panelRef}>
@@ -673,7 +668,7 @@ function TaskDetail({
         <div className="detail-pills">
           <PriorityPill priority={task.priority} />
           <StatusPill status={task.status} />
-          <ExecutionPill state={executionState} />
+          <ReadinessPill state={readiness} />
           <KindPill kind={task.kind} />
         </div>
         <div className="detail-meta">
@@ -786,10 +781,14 @@ function StatusPill({ status }: { status: TaskStatus }) {
   );
 }
 
-function ExecutionPill({ state }: { state: ExecutionState }) {
+function ReadinessPill({ state }: { state: ReadinessState | undefined }) {
+  if (!state) {
+    return null;
+  }
+
   return (
-    <span className={`execution-pill ${state}`} title="Derived queue state">
-      Queue: {executionLabels[state]}
+    <span className={`readiness-pill ${state}`} title="Derived readiness">
+      {readinessLabels[state]}
     </span>
   );
 }
@@ -848,36 +847,20 @@ function taskMatchesFilters(task: ParsedTask, filters: TaskFilters, board: Board
     return false;
   }
 
-  if (filters.execution !== "all" && executionStateFor(task, board) !== filters.execution) {
+  if (filters.readiness !== "all" && readinessFor(task, board) !== filters.readiness) {
     return false;
   }
 
   return true;
 }
 
-function executionStateFor(task: ParsedTask, board: BoardIndex): ExecutionState {
+function readinessFor(task: ParsedTask, board: BoardIndex): ReadinessState | undefined {
   if (!executableTaskKinds.includes(task.kind)) {
-    return "container";
+    return task.status === "done" || task.status === "canceled" ? undefined : "planning";
   }
 
-  if (task.status === "in_progress") {
-    return "active";
-  }
-
-  if (task.status === "blocked") {
-    return "blocked";
-  }
-
-  if (task.status === "review") {
-    return "review";
-  }
-
-  if (task.status === "done" || task.status === "canceled") {
-    return "closed";
-  }
-
-  if (task.status === "draft") {
-    return "draft";
+  if (task.status !== "ready") {
+    return undefined;
   }
 
   if (board.availableTaskIds.includes(task.id)) {
