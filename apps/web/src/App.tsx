@@ -85,10 +85,10 @@ const viewOptions: Array<{ icon: typeof ListTodo; id: ViewMode; label: string }>
 ];
 
 const graphCanvasPadding = 18;
-const graphColumnGap = 96;
-const graphNodeHeight = 138;
-const graphNodeWidth = 260;
-const graphRowGap = 26;
+const graphColumnGap = 72;
+const graphNodeHeight = 112;
+const graphNodeWidth = 300;
+const graphRowGap = 18;
 const projectStorageKey = "duneboard:selected-project";
 
 type GraphNodeLayout = {
@@ -657,7 +657,6 @@ function GraphView({
               <StatusPill status={node.task.status} />
               <KindPill kind={node.task.kind} />
             </div>
-            <DependencyLine task={node.task} />
           </button>
         ))}
       </div>
@@ -975,6 +974,7 @@ function formatTaskCount(count: number, singularLabel: string, pluralLabel = `${
 function buildGraphLayout(tasks: ParsedTask[]): GraphLayout {
   const visibleIds = new Set(tasks.map((task) => task.id));
   const connectedIds = new Set<TaskId>();
+  const hasHierarchyEdges = tasks.some((task) => task.parent && visibleIds.has(task.parent));
 
   tasks.forEach((task) => {
     task.depends_on.forEach((dependencyId) => {
@@ -993,21 +993,7 @@ function buildGraphLayout(tasks: ParsedTask[]): GraphLayout {
   });
 
   const layoutTasks = connectedIds.size > 0 ? tasks.filter((task) => connectedIds.has(task.id)) : tasks;
-  const levels = groupTasksByGraphLevel(layoutTasks);
-  const nodes: GraphNodeLayout[] = [];
-  const maxRows = Math.max(...levels.map((level) => level.length), 0);
-
-  levels.forEach((level, levelIndex) => {
-    level.forEach((task, rowIndex) => {
-      nodes.push({
-        height: graphNodeHeight,
-        task,
-        width: graphNodeWidth,
-        x: graphCanvasPadding + levelIndex * (graphNodeWidth + graphColumnGap),
-        y: graphCanvasPadding + rowIndex * (graphNodeHeight + graphRowGap)
-      });
-    });
-  });
+  const nodes = hasHierarchyEdges ? positionGraphNodesByHierarchy(layoutTasks) : positionGraphNodesByLevels(layoutTasks);
 
   const nodesById = new Map(nodes.map((node) => [node.task.id, node]));
   const edges: GraphEdgeLayout[] = [];
@@ -1028,7 +1014,10 @@ function buildGraphLayout(tasks: ParsedTask[]): GraphLayout {
     edges.push({
       from: fromId,
       kind,
-      path: `M ${startX} ${startY} C ${middleX} ${startY} ${middleX} ${endY} ${endX} ${endY}`,
+      path:
+        kind === "hierarchy"
+          ? `M ${startX} ${startY} H ${middleX} V ${endY} H ${endX}`
+          : `M ${startX} ${startY} C ${middleX} ${startY} ${middleX} ${endY} ${endX} ${endY}`,
       to: toNode.task.id
     });
   };
@@ -1047,14 +1036,90 @@ function buildGraphLayout(tasks: ParsedTask[]): GraphLayout {
     dependencyEdgeCount: edges.filter((edge) => edge.kind === "dependency").length,
     edges,
     hierarchyEdgeCount: edges.filter((edge) => edge.kind === "hierarchy").length,
-    height: Math.max(360, graphCanvasPadding * 2 + maxRows * graphNodeHeight + Math.max(maxRows - 1, 0) * graphRowGap),
+    height: graphExtent(nodes, "height"),
     hiddenIsolatedCount: connectedIds.size > 0 ? tasks.length - layoutTasks.length : 0,
     nodes,
-    width: Math.max(860, graphCanvasPadding * 2 + levels.length * graphNodeWidth + Math.max(levels.length - 1, 0) * graphColumnGap)
+    width: graphExtent(nodes, "width")
   };
 }
 
-function groupTasksByGraphLevel(tasks: ParsedTask[]): ParsedTask[][] {
+function positionGraphNodesByHierarchy(tasks: ParsedTask[]): GraphNodeLayout[] {
+  const visibleIds = new Set(tasks.map((task) => task.id));
+  const order = new Map(tasks.map((task, index) => [task.id, index]));
+  const childrenByParent = new Map<TaskId, ParsedTask[]>();
+
+  tasks.forEach((task) => {
+    if (!task.parent || !visibleIds.has(task.parent)) {
+      return;
+    }
+
+    childrenByParent.set(task.parent, [...(childrenByParent.get(task.parent) ?? []), task]);
+  });
+
+  childrenByParent.forEach((children) => {
+    children.sort((left, right) => (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0));
+  });
+
+  const roots = tasks
+    .filter((task) => !task.parent || !visibleIds.has(task.parent))
+    .sort((left, right) => (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0));
+  const nodes: GraphNodeLayout[] = [];
+  let nextNodeY = graphCanvasPadding;
+
+  const placeTask = (task: ParsedTask, depth: number, path = new Set<TaskId>()) => {
+    if (path.has(task.id)) {
+      return;
+    }
+
+    const y = nextNodeY;
+    nextNodeY += graphNodeHeight + graphRowGap;
+
+    nodes.push({
+      height: graphNodeHeight,
+      task,
+      width: graphNodeWidth,
+      x: graphCanvasPadding + depth * (graphNodeWidth + graphColumnGap),
+      y
+    });
+
+    const children = childrenByParent.get(task.id) ?? [];
+    children.forEach((child) => placeTask(child, depth + 1, new Set([...path, task.id])));
+  };
+
+  roots.forEach((root) => placeTask(root, 0));
+
+  return nodes.sort((left, right) => left.x - right.x || left.y - right.y);
+}
+
+function positionGraphNodesByLevels(tasks: ParsedTask[]): GraphNodeLayout[] {
+  const levels = groupTasksByDependencyLevel(tasks);
+  const nodes: GraphNodeLayout[] = [];
+
+  levels.forEach((level, levelIndex) => {
+    level.forEach((task, rowIndex) => {
+      nodes.push({
+        height: graphNodeHeight,
+        task,
+        width: graphNodeWidth,
+        x: graphCanvasPadding + levelIndex * (graphNodeWidth + graphColumnGap),
+        y: graphCanvasPadding + rowIndex * (graphNodeHeight + graphRowGap)
+      });
+    });
+  });
+
+  return nodes;
+}
+
+function graphExtent(nodes: GraphNodeLayout[], axis: "height" | "width"): number {
+  const minimum = axis === "height" ? 360 : 860;
+  const edge = axis === "height" ? "y" : "x";
+  const size = axis === "height" ? "height" : "width";
+  const maxNodeEdge = Math.max(...nodes.map((node) => node[edge] + node[size]), 0);
+
+  return Math.max(minimum, maxNodeEdge + graphCanvasPadding);
+}
+
+function groupTasksByDependencyLevel(tasks: ParsedTask[]): ParsedTask[][] {
   const visibleIds = new Set(tasks.map((task) => task.id));
   const byId = Object.fromEntries(tasks.map((task) => [task.id, task]));
   const memo = new Map<TaskId, number>();
@@ -1070,17 +1135,14 @@ function groupTasksByGraphLevel(tasks: ParsedTask[]): ParsedTask[][] {
       return 0;
     }
 
-    const predecessorIds = [
-      ...task.depends_on.filter((dependencyId) => visibleIds.has(dependencyId)),
-      ...(task.parent && visibleIds.has(task.parent) ? [task.parent] : [])
-    ];
-
-    const predecessorLevels = predecessorIds.map((predecessorId) => {
-      const predecessor = byId[predecessorId];
-      return predecessor ? levelFor(predecessor, new Set([...path, task.id])) : 0;
+    const dependencyLevels = task.depends_on
+      .filter((dependencyId) => visibleIds.has(dependencyId))
+      .map((dependencyId) => {
+        const dependency = byId[dependencyId];
+        return dependency ? levelFor(dependency, new Set([...path, task.id])) : 0;
     });
 
-    const level = predecessorLevels.length ? Math.max(...predecessorLevels) + 1 : 0;
+    const level = dependencyLevels.length ? Math.max(...dependencyLevels) + 1 : 0;
     memo.set(task.id, level);
     return level;
   };
