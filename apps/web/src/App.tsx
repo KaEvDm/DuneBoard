@@ -595,7 +595,7 @@ function TaskRow({
         <strong>{task.title}</strong>
       </div>
       <div className="row-meta">
-        <PriorityPill priority={task.priority} />
+        {isClosedTask(task) ? null : <PriorityPill priority={task.priority} />}
         <StatusPill status={task.status} />
         <ReadinessPill state={readinessFor(task, board)} />
         <KindPill kind={task.kind} />
@@ -621,7 +621,7 @@ function TaskCard({
       <div className="card-topline">
         <span className="task-id">{task.id}</span>
         <div className="card-pills">
-          <PriorityPill priority={task.priority} />
+          {isClosedTask(task) ? null : <PriorityPill priority={task.priority} />}
           <KindPill kind={task.kind} />
           <ReadinessPill state={readinessFor(task, board)} />
         </div>
@@ -666,7 +666,7 @@ function TaskDetail({
         <span className="task-id">{task.id}</span>
         <h2>{task.title}</h2>
         <div className="detail-pills">
-          <PriorityPill priority={task.priority} />
+          {isClosedTask(task) ? null : <PriorityPill priority={task.priority} />}
           <StatusPill status={task.status} />
           <ReadinessPill state={readiness} />
           <KindPill kind={task.kind} />
@@ -852,6 +852,10 @@ function taskMatchesFilters(task: ParsedTask, filters: TaskFilters, board: Board
   }
 
   return true;
+}
+
+function isClosedTask(task: ParsedTask): boolean {
+  return task.status === "done" || task.status === "canceled";
 }
 
 function readinessFor(task: ParsedTask, board: BoardIndex): ReadinessState | undefined {
