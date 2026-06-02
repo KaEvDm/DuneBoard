@@ -645,9 +645,10 @@ button {
 }
 
 .graph-node {
+  align-content: start;
   display: grid;
   gap: 8px;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto;
   overflow: hidden;
   padding: 12px;
   position: absolute;
@@ -659,7 +660,7 @@ button {
   line-height: 1.25;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 6;
 }
 
 .graph-edges {
