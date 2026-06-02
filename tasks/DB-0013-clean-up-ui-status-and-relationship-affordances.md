@@ -15,7 +15,7 @@ labels:
   - ui
   - cleanup
 created_at: 2026-06-02T00:00:45.827Z
-updated_at: 2026-06-02T00:09:44.073Z
+updated_at: 2026-06-02T00:54:20.697Z
 ---
 
 ## Goal
@@ -54,6 +54,17 @@ Audit summary:
 Keep the first pass small: UI wording, badges, relation display, and scroll
 behavior only. Do not change parser schema or introduce graph libraries.
 
+UX decision:
+
+- `status` is the canonical stored workflow state and should be visible as the
+  main state.
+- Derived queue/readiness state should not be shown as a second status.
+- Show readiness only when it adds information that agents and humans cannot
+  get from status alone: executable `ready` work that is available, executable
+  `ready` work waiting on dependencies, or non-executable planning containers.
+- Do not show readiness pills for `done`, `canceled`, `in_progress`, `blocked`,
+  or `review`, because those labels duplicate the stored status.
+
 ## Open Questions
 
 None for the first pass. Larger graph redesign should wait until there is a
@@ -67,3 +78,7 @@ clearer product shape.
   links, dependency-depth graph labels, and fixed desktop scroll behavior.
 - 2026-06-02: Verified `pnpm check`, local DuneBoard validation, Achiever
   validation, and browser switching from DuneBoard to Achiever.
+- 2026-06-02: Reopened to simplify the derived state UX so it only appears when
+  it adds readiness information.
+- 2026-06-02: Replaced always-visible queue state with optional readiness pills
+  for available work, dependency-waiting work, and planning containers only.
