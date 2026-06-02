@@ -84,7 +84,34 @@ const viewOptions: Array<{ icon: typeof ListTodo; id: ViewMode; label: string }>
   { icon: GitBranch, id: "graph", label: "Graph" }
 ];
 
+const graphCanvasPadding = 18;
+const graphColumnGap = 96;
+const graphNodeHeight = 138;
+const graphNodeWidth = 260;
+const graphRowGap = 26;
 const projectStorageKey = "duneboard:selected-project";
+
+type GraphNodeLayout = {
+  height: number;
+  task: ParsedTask;
+  width: number;
+  x: number;
+  y: number;
+};
+
+type GraphEdgeLayout = {
+  from: TaskId;
+  path: string;
+  to: TaskId;
+};
+
+type GraphLayout = {
+  edges: GraphEdgeLayout[];
+  height: number;
+  hiddenIsolatedCount: number;
+  nodes: GraphNodeLayout[];
+  width: number;
+};
 
 export function App() {
   const [projects, setProjects] = useState<BoardProject[]>([]);
@@ -541,36 +568,66 @@ function GraphView({
   selectedTaskId: TaskId | undefined;
   tasks: ParsedTask[];
 }) {
-  const levels = useMemo(() => groupTasksByDependencyLevel(tasks), [tasks]);
+  const layout = useMemo(() => buildGraphLayout(tasks), [tasks]);
+
+  if (tasks.length === 0) {
+    return (
+      <section className="graph-view" aria-label="Dependency graph">
+        <EmptyState />
+      </section>
+    );
+  }
 
   return (
     <section className="graph-view" aria-label="Dependency graph">
-      <div className="graph-columns">
-        {levels.map((level, index) => (
-          <div className="graph-level" key={index}>
-            <div className="level-label" title={dependencyLevelTitle(index)}>
-              <span>{dependencyLevelTitle(index)}</span>
-              <small>{level.length}</small>
+      <div className="graph-summary">
+        <span>{formatTaskCount(layout.nodes.length, "graph task")}</span>
+        {layout.hiddenIsolatedCount > 0 ? <span>{formatTaskCount(layout.hiddenIsolatedCount, "isolated task")} hidden</span> : null}
+      </div>
+      <div className="graph-canvas" style={{ height: layout.height, width: layout.width }}>
+        <svg
+          aria-hidden="true"
+          className="graph-edges"
+          height={layout.height}
+          viewBox={`0 0 ${layout.width} ${layout.height}`}
+          width={layout.width}
+        >
+          <defs>
+            <marker
+              id="dependency-arrow"
+              markerHeight="10"
+              markerWidth="10"
+              orient="auto"
+              refX="9"
+              refY="5"
+              viewBox="0 0 10 10"
+            >
+              <path d="M 0 0 L 10 5 L 0 10 z" />
+            </marker>
+          </defs>
+          {layout.edges.map((edge) => (
+            <path className="graph-edge" d={edge.path} key={`${edge.from}-${edge.to}`} markerEnd="url(#dependency-arrow)" />
+          ))}
+        </svg>
+        {layout.nodes.map((node) => (
+          <button
+            className={`graph-node ${node.task.id === selectedTaskId ? "selected" : ""}`}
+            key={node.task.id}
+            onClick={() => onSelect(node.task.id)}
+            style={{ height: node.height, left: node.x, top: node.y, width: node.width }}
+            type="button"
+          >
+            <div className="node-topline">
+              <span>{node.task.id}</span>
+              <ReadinessPill state={readinessFor(node.task, board)} />
             </div>
-            <div className="graph-stack">
-              {level.map((task) => (
-                <button
-                  className={`graph-node ${task.id === selectedTaskId ? "selected" : ""}`}
-                  key={task.id}
-                  onClick={() => onSelect(task.id)}
-                  type="button"
-                >
-                  <div className="node-topline">
-                    <span>{task.id}</span>
-                    <ReadinessPill state={readinessFor(task, board)} />
-                  </div>
-                  <strong>{task.title}</strong>
-                  <KindPill kind={task.kind} />
-                  <DependencyLine task={task} />
-                </button>
-              ))}
+            <strong>{node.task.title}</strong>
+            <div className="node-pills">
+              <StatusPill status={node.task.status} />
+              <KindPill kind={node.task.kind} />
             </div>
-          </div>
+            <DependencyLine task={node.task} />
+          </button>
         ))}
       </div>
     </section>
@@ -880,12 +937,74 @@ function formatBoardRoot(value: string): string {
   return parts.slice(-2).join(" / ") || value;
 }
 
-function dependencyLevelTitle(index: number): string {
-  if (index === 0) {
-    return "No dependencies";
-  }
+function formatTaskCount(count: number, singularLabel: string): string {
+  return `${count} ${singularLabel}${count === 1 ? "" : "s"}`;
+}
 
-  return index === 1 ? "After 1 dependency layer" : `After ${index} dependency layers`;
+function buildGraphLayout(tasks: ParsedTask[]): GraphLayout {
+  const visibleIds = new Set(tasks.map((task) => task.id));
+  const connectedIds = new Set<TaskId>();
+
+  tasks.forEach((task) => {
+    task.depends_on.forEach((dependencyId) => {
+      if (!visibleIds.has(dependencyId)) {
+        return;
+      }
+
+      connectedIds.add(task.id);
+      connectedIds.add(dependencyId);
+    });
+  });
+
+  const layoutTasks = connectedIds.size > 0 ? tasks.filter((task) => connectedIds.has(task.id)) : tasks;
+  const levels = groupTasksByDependencyLevel(layoutTasks);
+  const nodes: GraphNodeLayout[] = [];
+  const maxRows = Math.max(...levels.map((level) => level.length), 0);
+
+  levels.forEach((level, levelIndex) => {
+    level.forEach((task, rowIndex) => {
+      nodes.push({
+        height: graphNodeHeight,
+        task,
+        width: graphNodeWidth,
+        x: graphCanvasPadding + levelIndex * (graphNodeWidth + graphColumnGap),
+        y: graphCanvasPadding + rowIndex * (graphNodeHeight + graphRowGap)
+      });
+    });
+  });
+
+  const nodesById = new Map(nodes.map((node) => [node.task.id, node]));
+  const edges: GraphEdgeLayout[] = [];
+
+  nodes.forEach((node) => {
+    node.task.depends_on.forEach((dependencyId) => {
+      const dependencyNode = nodesById.get(dependencyId);
+
+      if (!dependencyNode) {
+        return;
+      }
+
+      const startX = dependencyNode.x + dependencyNode.width;
+      const startY = dependencyNode.y + dependencyNode.height / 2;
+      const endX = node.x;
+      const endY = node.y + node.height / 2;
+      const middleX = startX + Math.max((endX - startX) / 2, 36);
+
+      edges.push({
+        from: dependencyId,
+        path: `M ${startX} ${startY} C ${middleX} ${startY} ${middleX} ${endY} ${endX} ${endY}`,
+        to: node.task.id
+      });
+    });
+  });
+
+  return {
+    edges,
+    height: Math.max(360, graphCanvasPadding * 2 + maxRows * graphNodeHeight + Math.max(maxRows - 1, 0) * graphRowGap),
+    hiddenIsolatedCount: connectedIds.size > 0 ? tasks.length - layoutTasks.length : 0,
+    nodes,
+    width: Math.max(860, graphCanvasPadding * 2 + levels.length * graphNodeWidth + Math.max(levels.length - 1, 0) * graphColumnGap)
+  };
 }
 
 function groupTasksByDependencyLevel(tasks: ParsedTask[]): ParsedTask[][] {
