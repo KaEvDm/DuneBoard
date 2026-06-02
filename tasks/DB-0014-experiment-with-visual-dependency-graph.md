@@ -15,7 +15,7 @@ labels:
   - graph
   - experiment
 created_at: 2026-06-02T01:15:26.915Z
-updated_at: 2026-06-02T01:29:42.227Z
+updated_at: 2026-06-02T01:36:17.389Z
 ---
 
 ## Goal
@@ -54,6 +54,8 @@ Result:
 - Showing parent-child links turns sparse dependency boards into full hierarchy
   graphs. That is useful, but large boards may need a focus/filter affordance
   before this becomes default UI.
+- Achiever needs hierarchy-first ordering. Dependency-depth columns make a large
+  parent tree unreadable because sibling groups are mixed together.
 
 ## Open Questions
 
@@ -76,3 +78,6 @@ None for the first prototype.
   counts for dependencies and parent links.
 - 2026-06-02: Verified DuneBoard renders both dependency and parent links;
   Achiever renders as a large hierarchy graph with 97 tasks and 96 parent links.
+- 2026-06-02: Reworked layout against Achiever data to use preorder hierarchy
+  placement, keeping parents above their child groups and dependencies as an
+  overlay.
