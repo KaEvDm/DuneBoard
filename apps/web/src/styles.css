@@ -611,6 +611,35 @@ button {
   padding: 5px 9px;
 }
 
+.graph-legend {
+  align-items: center;
+  color: #4b5565;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  gap: 14px;
+}
+
+.graph-legend span {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.graph-legend i {
+  display: inline-block;
+  height: 0;
+  width: 28px;
+}
+
+.graph-legend i.dependency {
+  border-top: 2px solid #64748b;
+}
+
+.graph-legend i.hierarchy {
+  border-top: 2px dashed #2563eb;
+}
+
 .graph-canvas {
   position: relative;
 }
@@ -642,14 +671,25 @@ button {
 
 .graph-edge {
   fill: none;
-  marker-end: url("#dependency-arrow");
-  stroke: #94a3b8;
   stroke-linecap: round;
   stroke-width: 1.8;
 }
 
-.graph-edges marker path {
-  fill: #94a3b8;
+.graph-edge.dependency {
+  stroke: #64748b;
+}
+
+.graph-edge.hierarchy {
+  stroke: #2563eb;
+  stroke-dasharray: 7 6;
+}
+
+#dependency-arrow path {
+  fill: #64748b;
+}
+
+#hierarchy-arrow path {
+  fill: #2563eb;
 }
 
 .node-pills {

@@ -15,7 +15,7 @@ labels:
   - graph
   - experiment
 created_at: 2026-06-02T01:15:26.915Z
-updated_at: 2026-06-02T01:20:57.207Z
+updated_at: 2026-06-02T01:29:42.227Z
 ---
 
 ## Goal
@@ -28,6 +28,8 @@ are drawn as arrows between work items.
 - [x] Graph view renders work items as positioned nodes.
 - [x] `depends_on` relationships render as directional arrows from dependency
   to dependent work item.
+- [x] `parent` relationships render as visually distinct parent-to-child
+  arrows.
 - [x] Nodes remain clickable and update the detail panel.
 - [x] The experiment avoids new dependencies unless the custom approach is not
   viable.
@@ -49,6 +51,9 @@ Result:
   hidden.
 - This is still an experiment; review visually before deciding whether to merge
   or replace with a graph library.
+- Showing parent-child links turns sparse dependency boards into full hierarchy
+  graphs. That is useful, but large boards may need a focus/filter affordance
+  before this becomes default UI.
 
 ## Open Questions
 
@@ -65,3 +70,9 @@ None for the first prototype.
   present, with isolated task counts shown separately.
 - 2026-06-02: Verified `pnpm check`, local DuneBoard validation, Achiever
   validation, and browser behavior for DuneBoard and Achiever graphs.
+- 2026-06-02: Reopened because a useful work-item graph also needs
+  parent-child relationships, not only dependency links.
+- 2026-06-02: Added dashed parent-to-child arrows, a relation legend, and graph
+  counts for dependencies and parent links.
+- 2026-06-02: Verified DuneBoard renders both dependency and parent links;
+  Achiever renders as a large hierarchy graph with 97 tasks and 96 parent links.
