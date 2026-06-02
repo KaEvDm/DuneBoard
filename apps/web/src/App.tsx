@@ -86,8 +86,12 @@ const viewOptions: Array<{ icon: typeof ListTodo; id: ViewMode; label: string }>
 
 const graphCanvasPadding = 18;
 const graphColumnGap = 72;
-const graphNodeHeight = 112;
-const graphNodeWidth = 300;
+const graphNodeChromeHeight = 94;
+const graphNodeMaxTitleLines = 6;
+const graphNodeMinHeight = 150;
+const graphNodeTitleCharsPerLine = 42;
+const graphNodeTitleLineHeight = 20;
+const graphNodeWidth = 420;
 const graphRowGap = 18;
 const projectStorageKey = "duneboard:selected-project";
 
@@ -646,6 +650,7 @@ function GraphView({
             key={node.task.id}
             onClick={() => onSelect(node.task.id)}
             style={{ height: node.height, left: node.x, top: node.y, width: node.width }}
+            title={node.task.title}
             type="button"
           >
             <div className="node-topline">
@@ -1071,11 +1076,12 @@ function positionGraphNodesByHierarchy(tasks: ParsedTask[]): GraphNodeLayout[] {
       return;
     }
 
+    const height = graphNodeHeightFor(task);
     const y = nextNodeY;
-    nextNodeY += graphNodeHeight + graphRowGap;
+    nextNodeY += height + graphRowGap;
 
     nodes.push({
-      height: graphNodeHeight,
+      height,
       task,
       width: graphNodeWidth,
       x: graphCanvasPadding + depth * (graphNodeWidth + graphColumnGap),
@@ -1096,18 +1102,33 @@ function positionGraphNodesByLevels(tasks: ParsedTask[]): GraphNodeLayout[] {
   const nodes: GraphNodeLayout[] = [];
 
   levels.forEach((level, levelIndex) => {
-    level.forEach((task, rowIndex) => {
+    let y = graphCanvasPadding;
+
+    level.forEach((task) => {
+      const height = graphNodeHeightFor(task);
+
       nodes.push({
-        height: graphNodeHeight,
+        height,
         task,
         width: graphNodeWidth,
         x: graphCanvasPadding + levelIndex * (graphNodeWidth + graphColumnGap),
-        y: graphCanvasPadding + rowIndex * (graphNodeHeight + graphRowGap)
+        y
       });
+
+      y += height + graphRowGap;
     });
   });
 
   return nodes;
+}
+
+function graphNodeHeightFor(task: ParsedTask): number {
+  const estimatedTitleLines = Math.min(
+    graphNodeMaxTitleLines,
+    Math.max(2, Math.ceil(task.title.length / graphNodeTitleCharsPerLine))
+  );
+
+  return Math.max(graphNodeMinHeight, graphNodeChromeHeight + estimatedTitleLines * graphNodeTitleLineHeight);
 }
 
 function graphExtent(nodes: GraphNodeLayout[], axis: "height" | "width"): number {

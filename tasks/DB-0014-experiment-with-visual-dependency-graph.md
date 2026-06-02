@@ -15,7 +15,7 @@ labels:
   - graph
   - experiment
 created_at: 2026-06-02T01:15:26.915Z
-updated_at: 2026-06-02T01:36:17.389Z
+updated_at: 2026-06-02T01:42:29.768Z
 ---
 
 ## Goal
@@ -56,6 +56,10 @@ Result:
   before this becomes default UI.
 - Achiever needs hierarchy-first ordering. Dependency-depth columns make a large
   parent tree unreadable because sibling groups are mixed together.
+- Achiever titles are long enough that graph cards need a larger fixed title
+  area and a tooltip for the full title.
+- Variable-height graph nodes are simple enough for the prototype and avoid
+  making every card as tall as the longest title.
 
 ## Open Questions
 
@@ -81,3 +85,7 @@ None for the first prototype.
 - 2026-06-02: Reworked layout against Achiever data to use preorder hierarchy
   placement, keeping parents above their child groups and dependencies as an
   overlay.
+- 2026-06-02: Reopened after Achiever browser testing showed graph card titles
+  were vertically clipped.
+- 2026-06-02: Added variable-height graph cards with up to six title lines and
+  full-title tooltips; verified Achiever has zero clipped graph titles.
