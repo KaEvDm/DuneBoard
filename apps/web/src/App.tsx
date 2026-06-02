@@ -101,12 +101,15 @@ type GraphNodeLayout = {
 
 type GraphEdgeLayout = {
   from: TaskId;
+  kind: "dependency" | "hierarchy";
   path: string;
   to: TaskId;
 };
 
 type GraphLayout = {
+  dependencyEdgeCount: number;
   edges: GraphEdgeLayout[];
+  hierarchyEdgeCount: number;
   height: number;
   hiddenIsolatedCount: number;
   nodes: GraphNodeLayout[];
@@ -582,7 +585,19 @@ function GraphView({
     <section className="graph-view" aria-label="Dependency graph">
       <div className="graph-summary">
         <span>{formatTaskCount(layout.nodes.length, "graph task")}</span>
+        <span>{formatTaskCount(layout.dependencyEdgeCount, "dependency", "dependencies")}</span>
+        <span>{formatTaskCount(layout.hierarchyEdgeCount, "parent link")}</span>
         {layout.hiddenIsolatedCount > 0 ? <span>{formatTaskCount(layout.hiddenIsolatedCount, "isolated task")} hidden</span> : null}
+      </div>
+      <div className="graph-legend" aria-label="Graph edge legend">
+        <span>
+          <i className="dependency" />
+          Dependency
+        </span>
+        <span>
+          <i className="hierarchy" />
+          Parent to child
+        </span>
       </div>
       <div className="graph-canvas" style={{ height: layout.height, width: layout.width }}>
         <svg
@@ -604,9 +619,25 @@ function GraphView({
             >
               <path d="M 0 0 L 10 5 L 0 10 z" />
             </marker>
+            <marker
+              id="hierarchy-arrow"
+              markerHeight="10"
+              markerWidth="10"
+              orient="auto"
+              refX="9"
+              refY="5"
+              viewBox="0 0 10 10"
+            >
+              <path d="M 0 0 L 10 5 L 0 10 z" />
+            </marker>
           </defs>
           {layout.edges.map((edge) => (
-            <path className="graph-edge" d={edge.path} key={`${edge.from}-${edge.to}`} markerEnd="url(#dependency-arrow)" />
+            <path
+              className={`graph-edge ${edge.kind}`}
+              d={edge.path}
+              key={`${edge.kind}-${edge.from}-${edge.to}`}
+              markerEnd={edge.kind === "dependency" ? "url(#dependency-arrow)" : "url(#hierarchy-arrow)"}
+            />
           ))}
         </svg>
         {layout.nodes.map((node) => (
@@ -937,8 +968,8 @@ function formatBoardRoot(value: string): string {
   return parts.slice(-2).join(" / ") || value;
 }
 
-function formatTaskCount(count: number, singularLabel: string): string {
-  return `${count} ${singularLabel}${count === 1 ? "" : "s"}`;
+function formatTaskCount(count: number, singularLabel: string, pluralLabel = `${singularLabel}s`): string {
+  return `${count} ${count === 1 ? singularLabel : pluralLabel}`;
 }
 
 function buildGraphLayout(tasks: ParsedTask[]): GraphLayout {
@@ -954,10 +985,15 @@ function buildGraphLayout(tasks: ParsedTask[]): GraphLayout {
       connectedIds.add(task.id);
       connectedIds.add(dependencyId);
     });
+
+    if (task.parent && visibleIds.has(task.parent)) {
+      connectedIds.add(task.id);
+      connectedIds.add(task.parent);
+    }
   });
 
   const layoutTasks = connectedIds.size > 0 ? tasks.filter((task) => connectedIds.has(task.id)) : tasks;
-  const levels = groupTasksByDependencyLevel(layoutTasks);
+  const levels = groupTasksByGraphLevel(layoutTasks);
   const nodes: GraphNodeLayout[] = [];
   const maxRows = Math.max(...levels.map((level) => level.length), 0);
 
@@ -976,30 +1012,41 @@ function buildGraphLayout(tasks: ParsedTask[]): GraphLayout {
   const nodesById = new Map(nodes.map((node) => [node.task.id, node]));
   const edges: GraphEdgeLayout[] = [];
 
+  const addEdge = (fromId: TaskId, toNode: GraphNodeLayout, kind: GraphEdgeLayout["kind"]) => {
+    const fromNode = nodesById.get(fromId);
+
+    if (!fromNode) {
+      return;
+    }
+
+    const startX = fromNode.x + fromNode.width;
+    const startY = fromNode.y + fromNode.height / 2;
+    const endX = toNode.x;
+    const endY = toNode.y + toNode.height / 2;
+    const middleX = startX + Math.max((endX - startX) / 2, 36);
+
+    edges.push({
+      from: fromId,
+      kind,
+      path: `M ${startX} ${startY} C ${middleX} ${startY} ${middleX} ${endY} ${endX} ${endY}`,
+      to: toNode.task.id
+    });
+  };
+
   nodes.forEach((node) => {
     node.task.depends_on.forEach((dependencyId) => {
-      const dependencyNode = nodesById.get(dependencyId);
-
-      if (!dependencyNode) {
-        return;
-      }
-
-      const startX = dependencyNode.x + dependencyNode.width;
-      const startY = dependencyNode.y + dependencyNode.height / 2;
-      const endX = node.x;
-      const endY = node.y + node.height / 2;
-      const middleX = startX + Math.max((endX - startX) / 2, 36);
-
-      edges.push({
-        from: dependencyId,
-        path: `M ${startX} ${startY} C ${middleX} ${startY} ${middleX} ${endY} ${endX} ${endY}`,
-        to: node.task.id
-      });
+      addEdge(dependencyId, node, "dependency");
     });
+
+    if (node.task.parent) {
+      addEdge(node.task.parent, node, "hierarchy");
+    }
   });
 
   return {
+    dependencyEdgeCount: edges.filter((edge) => edge.kind === "dependency").length,
     edges,
+    hierarchyEdgeCount: edges.filter((edge) => edge.kind === "hierarchy").length,
     height: Math.max(360, graphCanvasPadding * 2 + maxRows * graphNodeHeight + Math.max(maxRows - 1, 0) * graphRowGap),
     hiddenIsolatedCount: connectedIds.size > 0 ? tasks.length - layoutTasks.length : 0,
     nodes,
@@ -1007,7 +1054,7 @@ function buildGraphLayout(tasks: ParsedTask[]): GraphLayout {
   };
 }
 
-function groupTasksByDependencyLevel(tasks: ParsedTask[]): ParsedTask[][] {
+function groupTasksByGraphLevel(tasks: ParsedTask[]): ParsedTask[][] {
   const visibleIds = new Set(tasks.map((task) => task.id));
   const byId = Object.fromEntries(tasks.map((task) => [task.id, task]));
   const memo = new Map<TaskId, number>();
@@ -1023,14 +1070,17 @@ function groupTasksByDependencyLevel(tasks: ParsedTask[]): ParsedTask[][] {
       return 0;
     }
 
-    const dependencyLevels = task.depends_on
-      .filter((dependencyId) => visibleIds.has(dependencyId))
-      .map((dependencyId) => {
-        const dependency = byId[dependencyId];
-        return dependency ? levelFor(dependency, new Set([...path, task.id])) : 0;
-      });
+    const predecessorIds = [
+      ...task.depends_on.filter((dependencyId) => visibleIds.has(dependencyId)),
+      ...(task.parent && visibleIds.has(task.parent) ? [task.parent] : [])
+    ];
 
-    const level = dependencyLevels.length ? Math.max(...dependencyLevels) + 1 : 0;
+    const predecessorLevels = predecessorIds.map((predecessorId) => {
+      const predecessor = byId[predecessorId];
+      return predecessor ? levelFor(predecessor, new Set([...path, task.id])) : 0;
+    });
+
+    const level = predecessorLevels.length ? Math.max(...predecessorLevels) + 1 : 0;
     memo.set(task.id, level);
     return level;
   };
