@@ -15,7 +15,7 @@ labels:
   - ui
   - cleanup
 created_at: 2026-06-02T00:00:45.827Z
-updated_at: 2026-06-02T00:54:20.697Z
+updated_at: 2026-06-02T01:05:34.229Z
 ---
 
 ## Goal
@@ -64,6 +64,8 @@ UX decision:
   `ready` work waiting on dependencies, or non-executable planning containers.
 - Do not show readiness pills for `done`, `canceled`, `in_progress`, `blocked`,
   or `review`, because those labels duplicate the stored status.
+- Priority is stored history for closed tasks, but the UI should not give
+  `done` or `canceled` work active priority weight.
 
 ## Open Questions
 
@@ -82,3 +84,6 @@ clearer product shape.
   it adds readiness information.
 - 2026-06-02: Replaced always-visible queue state with optional readiness pills
   for available work, dependency-waiting work, and planning containers only.
+- 2026-06-02: Reopened to hide priority affordances for closed tasks while
+  keeping priority in Markdown files.
+- 2026-06-02: Hid priority pills for `done` and `canceled` tasks in the web UI.
