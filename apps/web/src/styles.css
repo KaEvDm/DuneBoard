@@ -589,52 +589,74 @@ button {
 }
 
 .graph-view {
+  display: grid;
+  gap: 12px;
   min-width: 860px;
 }
 
-.graph-columns {
-  align-items: stretch;
-  display: flex;
-  gap: 14px;
-}
-
-.graph-level {
-  border-left: 2px solid #d9dee7;
-  display: grid;
-  gap: 10px;
-  grid-template-rows: auto 1fr;
-  min-width: 250px;
-  padding-left: 12px;
-}
-
-.level-label {
+.graph-summary {
   align-items: center;
   color: #697386;
   display: flex;
-  font-size: 12px;
-  font-weight: 800;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 700;
   gap: 8px;
-  justify-content: space-between;
 }
 
-.level-label span {
-  overflow-wrap: anywhere;
-}
-
-.level-label small {
-  background: #eef2f7;
+.graph-summary span {
+  background: #ffffff;
+  border: 1px solid #d9dee7;
   border-radius: 999px;
-  color: #475467;
-  font-size: 11px;
-  min-width: 24px;
-  padding: 2px 7px;
-  text-align: center;
+  padding: 5px 9px;
+}
+
+.graph-canvas {
+  position: relative;
 }
 
 .graph-node {
   display: grid;
   gap: 8px;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  overflow: hidden;
   padding: 12px;
+  position: absolute;
+  z-index: 1;
+}
+
+.graph-node strong {
+  display: -webkit-box;
+  line-height: 1.25;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.graph-edges {
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+  position: absolute;
+}
+
+.graph-edge {
+  fill: none;
+  marker-end: url("#dependency-arrow");
+  stroke: #94a3b8;
+  stroke-linecap: round;
+  stroke-width: 1.8;
+}
+
+.graph-edges marker path {
+  fill: #94a3b8;
+}
+
+.node-pills {
+  align-items: center;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
 }
 
 .node-topline {
