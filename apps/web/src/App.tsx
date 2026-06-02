@@ -1,16 +1,24 @@
 import {
   AlertTriangle,
+  BookOpenText,
+  Boxes,
+  Bug,
   CheckCircle2,
   CircleDot,
+  ClipboardCheck,
   Columns3,
   FileText,
   Filter,
+  Flag,
+  FlaskConical,
   GitBranch,
   ListTodo,
   Search,
+  Vote,
+  Wrench,
   X
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { executableTaskKinds, type ParsedTask, type TaskId, type TaskKind, type TaskStatus } from "@duneboard/core";
 import { emptyBoard, fetchProjectBoard, fetchProjects, type BoardIndex, type BoardProject } from "./board-data";
 
@@ -47,14 +55,25 @@ const statusLabels: Record<TaskStatus, string> = {
 const kindOrder: TaskKind[] = ["epic", "feature", "story", "task", "bug", "spike", "chore", "decision"];
 
 const executionLabels: Record<ExecutionState, string> = {
-  active: "Active",
+  active: "In work",
   available: "Available",
   blocked: "Blocked",
-  closed: "Closed",
-  container: "Container",
-  draft: "Draft",
-  review: "Review",
+  closed: "Not active",
+  container: "Planning",
+  draft: "Not ready",
+  review: "In review",
   waiting: "Waiting"
+};
+
+const kindMeta: Record<TaskKind, { icon: typeof CircleDot; label: string }> = {
+  bug: { icon: Bug, label: "Bug" },
+  chore: { icon: Wrench, label: "Chore" },
+  decision: { icon: Vote, label: "Decision" },
+  epic: { icon: Flag, label: "Epic" },
+  feature: { icon: Boxes, label: "Feature" },
+  spike: { icon: FlaskConical, label: "Spike" },
+  story: { icon: BookOpenText, label: "Story" },
+  task: { icon: ClipboardCheck, label: "Task" }
 };
 
 const emptyFilters: TaskFilters = {
@@ -411,7 +430,7 @@ function FilterBar({
         <option value="all">All kinds</option>
         {kindOrder.map((kind) => (
           <option key={kind} value={kind}>
-            {kind}
+            {kindMeta[kind].label}
           </option>
         ))}
       </select>
@@ -428,11 +447,11 @@ function FilterBar({
         ))}
       </select>
       <select
-        aria-label="Execution state"
+        aria-label="Queue state"
         onChange={(event) => setFilter("execution", event.target.value as TaskFilters["execution"])}
         value={filters.execution}
       >
-        <option value="all">All states</option>
+        <option value="all">All queue states</option>
         {Object.entries(executionLabels).map(([state, label]) => (
           <option key={state} value={state}>
             {label}
@@ -531,28 +550,34 @@ function GraphView({
 
   return (
     <section className="graph-view" aria-label="Dependency graph">
-      {levels.map((level, index) => (
-        <div className="graph-level" key={index}>
-          <div className="level-label">L{index}</div>
-          <div className="graph-stack">
-            {level.map((task) => (
-              <button
-                className={`graph-node ${task.id === selectedTaskId ? "selected" : ""}`}
-                key={task.id}
-                onClick={() => onSelect(task.id)}
-                type="button"
-              >
-                <div className="node-topline">
-                  <span>{task.id}</span>
-                  <ExecutionPill state={executionStateFor(task, board)} />
-                </div>
-                <strong>{task.title}</strong>
-                <DependencyLine task={task} />
-              </button>
-            ))}
+      <div className="graph-columns">
+        {levels.map((level, index) => (
+          <div className="graph-level" key={index}>
+            <div className="level-label" title={dependencyLevelTitle(index)}>
+              <span>{dependencyLevelTitle(index)}</span>
+              <small>{level.length}</small>
+            </div>
+            <div className="graph-stack">
+              {level.map((task) => (
+                <button
+                  className={`graph-node ${task.id === selectedTaskId ? "selected" : ""}`}
+                  key={task.id}
+                  onClick={() => onSelect(task.id)}
+                  type="button"
+                >
+                  <div className="node-topline">
+                    <span>{task.id}</span>
+                    <ExecutionPill state={executionStateFor(task, board)} />
+                  </div>
+                  <strong>{task.title}</strong>
+                  <KindPill kind={task.kind} />
+                  <DependencyLine task={task} />
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </section>
   );
 }
@@ -578,7 +603,7 @@ function TaskRow({
         <PriorityPill priority={task.priority} />
         <StatusPill status={task.status} />
         <ExecutionPill state={executionStateFor(task, board)} />
-        <span>{task.kind}</span>
+        <KindPill kind={task.kind} />
       </div>
       <DependencyLine task={task} />
     </button>
@@ -602,6 +627,7 @@ function TaskCard({
         <span className="task-id">{task.id}</span>
         <div className="card-pills">
           <PriorityPill priority={task.priority} />
+          <KindPill kind={task.kind} />
           <ExecutionPill state={executionStateFor(task, board)} />
         </div>
       </div>
@@ -620,9 +646,15 @@ function TaskDetail({
   onSelectTask: (taskId: TaskId) => void;
   task: ParsedTask | undefined;
 }) {
+  const panelRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    panelRef.current?.scrollTo({ top: 0 });
+  }, [task?.id]);
+
   if (!task) {
     return (
-      <section className="detail-panel">
+      <section className="detail-panel" ref={panelRef}>
         <p className="muted">No task selected</p>
       </section>
     );
@@ -634,7 +666,7 @@ function TaskDetail({
   const executionState = executionStateFor(task, board);
 
   return (
-    <section className="detail-panel">
+    <section className="detail-panel" ref={panelRef}>
       <div className="detail-heading">
         <span className="task-id">{task.id}</span>
         <h2>{task.title}</h2>
@@ -642,7 +674,7 @@ function TaskDetail({
           <PriorityPill priority={task.priority} />
           <StatusPill status={task.status} />
           <ExecutionPill state={executionState} />
-          <span className="soft-pill">{task.kind}</span>
+          <KindPill kind={task.kind} />
         </div>
         <div className="detail-meta">
           <span>
@@ -676,6 +708,7 @@ function TaskDetail({
         <RelationList board={board} label="Depends on" onSelect={onSelectTask} values={task.depends_on} />
         <RelationList board={board} label="Children" onSelect={onSelectTask} values={children} />
         <RelationList board={board} label="Dependents" onSelect={onSelectTask} values={dependents} />
+        <RelationList board={board} label="Related" onSelect={onSelectTask} values={task.relates_to} />
         <RelationList board={board} label="Labels" values={task.labels} />
       </section>
 
@@ -714,8 +747,9 @@ function RelationList({
 
           if (relatedTask && onSelect) {
             return (
-              <button className="relation-pill" key={value} onClick={() => onSelect(value as TaskId)} type="button">
-                {value}
+              <button className="relation-link" key={value} onClick={() => onSelect(value as TaskId)} type="button">
+                <strong>{value}</strong>
+                <span>{relatedTask.title}</span>
               </button>
             );
           }
@@ -745,11 +779,31 @@ function PriorityPill({ priority }: { priority: string }) {
 }
 
 function StatusPill({ status }: { status: TaskStatus }) {
-  return <span className={`status-pill ${status}`}>{statusLabels[status]}</span>;
+  return (
+    <span className={`status-pill ${status}`} title="Stored Markdown status">
+      {statusLabels[status]}
+    </span>
+  );
 }
 
 function ExecutionPill({ state }: { state: ExecutionState }) {
-  return <span className={`execution-pill ${state}`}>{executionLabels[state]}</span>;
+  return (
+    <span className={`execution-pill ${state}`} title="Derived queue state">
+      Queue: {executionLabels[state]}
+    </span>
+  );
+}
+
+function KindPill({ kind }: { kind: TaskKind }) {
+  const meta = kindMeta[kind];
+  const Icon = meta.icon;
+
+  return (
+    <span className={`kind-pill ${kind}`} title={`Task type: ${meta.label}`}>
+      <Icon size={13} />
+      {meta.label}
+    </span>
+  );
 }
 
 function EmptyState() {
@@ -837,6 +891,14 @@ function formatBoardRoot(value: string): string {
   const parts = value.split(/[\\/]+/).filter(Boolean);
 
   return parts.slice(-2).join(" / ") || value;
+}
+
+function dependencyLevelTitle(index: number): string {
+  if (index === 0) {
+    return "No dependencies";
+  }
+
+  return index === 1 ? "After 1 dependency layer" : `After ${index} dependency layers`;
 }
 
 function groupTasksByDependencyLevel(tasks: ParsedTask[]): ParsedTask[][] {
