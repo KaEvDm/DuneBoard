@@ -11,9 +11,9 @@ those files as a fast visual board, graph, and agent-ready execution queue.
 
 ## Status
 
-Project selector release. `v0.8.0` lets the web UI open configured DuneBoard
-project roots and switch between them from the sidebar while keeping the
-repository-local board as the default.
+Visual graph release. `v0.9.0` replaces dependency-level graph lanes with a
+real work-item graph that draws dependency and parent-child arrows between
+tasks.
 
 ## Why
 
