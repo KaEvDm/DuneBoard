@@ -9,6 +9,20 @@ once implementation releases begin.
 
 No unreleased changes yet.
 
+## [0.9.0] - 2026-06-13
+
+### Added
+
+- Added a visual work-item graph with SVG arrows for dependency relationships.
+- Added parent-to-child graph arrows so hierarchy-heavy boards are readable.
+
+### Changed
+
+- Replaced dependency-level graph lanes with a hierarchy-first graph layout.
+- Improved graph cards so long task titles remain readable on large boards.
+- Clarified web UI status/readiness badges and hid readiness/priority when they
+  are not meaningful for closed tasks.
+
 ## [0.8.0] - 2026-06-02
 
 ### Added
@@ -98,7 +112,8 @@ No unreleased changes yet.
 - Initial project board written in DuneBoard Markdown task files.
 - Initial agent skill draft.
 
-[Unreleased]: https://github.com/KaEvDm/DuneBoard/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/KaEvDm/DuneBoard/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.5.0...v0.6.0
