@@ -11,9 +11,9 @@ those files as a fast visual board, graph, and agent-ready execution queue.
 
 ## Status
 
-Visual graph release. `v0.9.0` replaces dependency-level graph lanes with a
-real work-item graph that draws dependency and parent-child arrows between
-tasks.
+Dark theme release. `v0.10.0` adds a persisted light/dark theme toggle for the
+web UI while keeping list, board, graph, filters, and task details readable in
+both themes.
 
 ## Why
 

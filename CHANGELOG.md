@@ -9,6 +9,17 @@ once implementation releases begin.
 
 No unreleased changes yet.
 
+## [0.10.0] - 2026-06-16
+
+### Added
+
+- Added a persisted dark theme toggle to the web UI.
+
+### Changed
+
+- Reworked web UI colors around theme variables so list, board, graph, filters,
+  task details, and status pills support both light and dark themes.
+
 ## [0.9.0] - 2026-06-13
 
 ### Added
@@ -112,7 +123,8 @@ No unreleased changes yet.
 - Initial project board written in DuneBoard Markdown task files.
 - Initial agent skill draft.
 
-[Unreleased]: https://github.com/KaEvDm/DuneBoard/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/KaEvDm/DuneBoard/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.6.0...v0.7.0

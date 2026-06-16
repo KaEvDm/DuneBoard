@@ -13,7 +13,9 @@ import {
   FlaskConical,
   GitBranch,
   ListTodo,
+  Moon,
   Search,
+  Sun,
   Vote,
   Wrench,
   X
@@ -23,6 +25,7 @@ import { executableTaskKinds, type ParsedTask, type TaskId, type TaskKind, type 
 import { emptyBoard, fetchProjectBoard, fetchProjects, type BoardIndex, type BoardProject } from "./board-data";
 
 type ViewMode = "list" | "board" | "graph";
+type ThemeMode = "light" | "dark";
 type ReadinessState = "available" | "planning" | "waiting";
 type FilterValue<T extends string> = "all" | T;
 type TaskFilters = {
@@ -94,6 +97,7 @@ const graphNodeTitleLineHeight = 20;
 const graphNodeWidth = 420;
 const graphRowGap = 18;
 const projectStorageKey = "duneboard:selected-project";
+const themeStorageKey = "duneboard:theme";
 
 type GraphNodeLayout = {
   height: number;
@@ -131,6 +135,13 @@ export function App() {
   const [filters, setFilters] = useState<TaskFilters>(emptyFilters);
   const [view, setView] = useState<ViewMode>("list");
   const [selectedTaskId, setSelectedTaskId] = useState<TaskId | undefined>();
+  const [theme, setTheme] = useState<ThemeMode>(() => initialTheme());
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+    window.localStorage.setItem(themeStorageKey, theme);
+  }, [theme]);
 
   useEffect(() => {
     let canceled = false;
@@ -323,15 +334,26 @@ export function App() {
             })}
           </div>
 
-          <label className="search-box">
-            <Search size={17} />
-            <input
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search tasks"
-              type="search"
-              value={query}
-            />
-          </label>
+          <div className="toolbar-actions">
+            <label className="search-box">
+              <Search size={17} />
+              <input
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search tasks"
+                type="search"
+                value={query}
+              />
+            </label>
+            <button
+              aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+              className="theme-toggle"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              title={theme === "dark" ? "Light theme" : "Dark theme"}
+              type="button"
+            >
+              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+          </div>
         </div>
 
         <FilterBar
@@ -375,6 +397,16 @@ export function App() {
       <TaskDetail board={board} onSelectTask={setSelectedTaskId} task={selectedTask} />
     </div>
   );
+}
+
+function initialTheme(): ThemeMode {
+  const storedTheme = window.localStorage.getItem(themeStorageKey);
+
+  if (storedTheme === "light" || storedTheme === "dark") {
+    return storedTheme;
+  }
+
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 function Metric({ label, tone, value }: { label: string; tone?: "danger" | "ok"; value: number }) {
