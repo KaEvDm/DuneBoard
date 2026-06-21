@@ -108,20 +108,52 @@ function parseFrontmatter(filePath: string, content: string): FrontmatterResult 
 }
 
 function parseSections(body: string): Record<string, string> {
-  const matches = [...body.matchAll(/^##\s+(.+?)\s*$/gm)];
+  const matches: Array<{ contentStart: number; headingStart: number; title: string }> = [];
   const sections: Record<string, string> = {};
+  let activeFence: string | undefined;
 
-  matches.forEach((match, index) => {
-    const title = match[1]?.trim();
-
-    if (!title || match.index === undefined) {
-      return;
+  for (const match of body.matchAll(/[^\r\n]*(?:\r?\n|$)/g)) {
+    if (match[0] === "" && match.index === body.length) {
+      break;
     }
 
-    const contentStart = match.index + match[0].length;
+    const lineStart = match.index ?? 0;
+    const rawLine = match[0];
+    const line = rawLine.replace(/\r?\n$/, "");
+    const fenceMatch = line.match(/^\s*(`{3,}|~{3,})/);
+
+    if (fenceMatch) {
+      const fenceMarker = fenceMatch[1];
+      const fenceChar = fenceMarker?.[0];
+      const activeFenceChar = activeFence?.[0];
+
+      if (!activeFence && fenceMarker) {
+        activeFence = fenceMarker;
+      } else if (activeFence && fenceMarker && fenceChar === activeFenceChar && fenceMarker.length >= activeFence.length) {
+        activeFence = undefined;
+      }
+    }
+
+    if (activeFence) {
+      continue;
+    }
+
+    const headingMatch = line.match(/^##\s+(.+?)\s*$/);
+    const title = headingMatch?.[1]?.trim();
+
+    if (title) {
+      matches.push({
+        title,
+        headingStart: lineStart,
+        contentStart: lineStart + rawLine.length
+      });
+    }
+  }
+
+  matches.forEach((match, index) => {
     const next = matches[index + 1];
-    const contentEnd = next?.index ?? body.length;
-    sections[title] = body.slice(contentStart, contentEnd).trim();
+    const contentEnd = next?.headingStart ?? body.length;
+    sections[match.title] = body.slice(match.contentStart, contentEnd).trim();
   });
 
   return sections;
