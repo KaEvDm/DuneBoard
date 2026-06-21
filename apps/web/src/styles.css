@@ -658,6 +658,94 @@ button {
   position: relative;
 }
 
+.graph-group {
+  background: var(--color-surface-subtle, #f8fafc);
+  border: 1px solid var(--color-border, #d9dee7);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 70%);
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.graph-group.epic {
+  background: var(--pill-epic-bg, #faf5ff);
+  border-color: var(--pill-epic-text, #d8b4fe);
+}
+
+.graph-group.feature {
+  background: var(--pill-feature-bg, #eef2ff);
+  border-color: var(--pill-feature-text, #c7d2fe);
+}
+
+.graph-group.story {
+  background: var(--pill-story-bg, #f0f9ff);
+  border-color: var(--pill-story-text, #bae6fd);
+}
+
+.graph-group.bug {
+  background: var(--pill-bug-bg, #fef2f2);
+  border-color: var(--pill-bug-text, #fecaca);
+}
+
+.graph-group.spike {
+  background: var(--pill-spike-bg, #fffbeb);
+  border-color: var(--pill-spike-text, #fde68a);
+}
+
+.graph-group.decision {
+  background: var(--pill-decision-bg, #f0fdfa);
+  border-color: var(--pill-decision-text, #99f6e4);
+}
+
+.graph-group.nested {
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 80%),
+    0 0 0 1px rgb(15 23 42 / 5%);
+}
+
+.graph-group.selected {
+  border-color: var(--color-primary, #2563eb);
+  box-shadow: 0 0 0 2px var(--color-primary-soft, #bfdbfe);
+}
+
+.graph-group-header {
+  align-content: start;
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #d9dee7);
+  border-radius: 8px;
+  color: var(--color-text, #20242c);
+  cursor: pointer;
+  display: grid;
+  gap: 8px;
+  grid-template-rows: auto auto auto;
+  left: 14px;
+  min-height: 126px;
+  padding: 12px;
+  pointer-events: auto;
+  position: absolute;
+  text-align: left;
+  top: 14px;
+  width: min(420px, calc(100% - 28px));
+  z-index: 2;
+}
+
+.graph-group-header:hover {
+  border-color: var(--color-hover-border, #7c8aa5);
+}
+
+.graph-group.selected .graph-group-header {
+  border-color: var(--color-primary, #2563eb);
+}
+
+.graph-group-header strong {
+  display: -webkit-box;
+  line-height: 1.25;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
 .graph-node {
   align-content: start;
   display: grid;
@@ -666,7 +754,7 @@ button {
   overflow: hidden;
   padding: 12px;
   position: absolute;
-  z-index: 1;
+  z-index: 3;
 }
 
 .graph-node strong {
@@ -682,6 +770,7 @@ button {
   overflow: visible;
   pointer-events: none;
   position: absolute;
+  z-index: 1;
 }
 
 .graph-edge {

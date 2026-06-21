@@ -87,6 +87,7 @@ const viewOptions: Array<{ icon: typeof ListTodo; id: ViewMode; label: string }>
 
 const graphCanvasPadding = 18;
 const graphColumnGap = 72;
+const graphGroupPadding = 14;
 const graphNodeChromeHeight = 94;
 const graphNodeMaxTitleLines = 6;
 const graphNodeMinHeight = 150;
@@ -97,8 +98,28 @@ const graphRowGap = 18;
 const projectStorageKey = "duneboard:selected-project";
 
 type GraphNodeLayout = {
+  depth: number;
   height: number;
+  renderAsGroup?: boolean;
   task: ParsedTask;
+  width: number;
+  x: number;
+  y: number;
+};
+
+type GraphGroupLayout = {
+  childCount: number;
+  depth: number;
+  height: number;
+  nested: boolean;
+  task: ParsedTask;
+  width: number;
+  x: number;
+  y: number;
+};
+
+type GraphBoxLayout = {
+  height: number;
   width: number;
   x: number;
   y: number;
@@ -122,6 +143,7 @@ type GraphEdgeLayout = {
 type GraphLayout = {
   dependencyEdgeCount: number;
   edges: GraphEdgeLayout[];
+  groups: GraphGroupLayout[];
   hierarchyEdgeCount: number;
   height: number;
   hiddenIsolatedCount: number;
@@ -650,6 +672,7 @@ function GraphView({
     <section className="graph-view" aria-label="Dependency graph">
       <div className="graph-summary">
         <span>{formatTaskCount(layout.nodes.length, "graph task")}</span>
+        {layout.groups.length > 0 ? <span>{formatTaskCount(layout.groups.length, "container group")}</span> : null}
         <span>{formatTaskCount(layout.dependencyEdgeCount, "dependency", "dependencies")}</span>
         <span>{formatTaskCount(layout.hierarchyEdgeCount, "parent link")}</span>
         {layout.hiddenIsolatedCount > 0 ? <span>{formatTaskCount(layout.hiddenIsolatedCount, "isolated task")} hidden</span> : null}
@@ -674,6 +697,33 @@ function GraphView({
         ref={panViewportRef}
       >
         <div className="graph-canvas" style={{ height: layout.height, width: layout.width }}>
+          {layout.groups.map((group) => (
+            <div
+              className={`graph-group ${group.task.kind} ${group.nested ? "nested" : ""} ${
+                group.task.id === selectedTaskId ? "selected" : ""
+              }`}
+              key={group.task.id}
+              style={{ height: group.height, left: group.x, top: group.y, width: group.width }}
+            >
+              <button
+                className="graph-group-header"
+                onClick={() => onSelect(group.task.id)}
+                title={group.task.title}
+                type="button"
+              >
+                <div className="node-topline">
+                  <span>{group.task.id}</span>
+                  <ReadinessPill state={readinessFor(group.task, board)} />
+                </div>
+                <strong>{group.task.title}</strong>
+                <div className="node-pills">
+                  <StatusPill status={group.task.status} />
+                  <KindPill kind={group.task.kind} />
+                  <span className="soft-pill">{formatTaskCount(group.childCount, "child", "children")}</span>
+                </div>
+              </button>
+            </div>
+          ))}
           <svg
             aria-hidden="true"
             className="graph-edges"
@@ -714,7 +764,7 @@ function GraphView({
               />
             ))}
           </svg>
-          {layout.nodes.map((node) => (
+          {layout.nodes.filter((node) => !node.renderAsGroup).map((node) => (
             <button
               className={`graph-node ${node.task.id === selectedTaskId ? "selected" : ""}`}
               key={node.task.id}
@@ -741,7 +791,7 @@ function GraphView({
 }
 
 function isGraphNodeTarget(target: EventTarget): boolean {
-  return target instanceof Element && Boolean(target.closest(".graph-node"));
+  return target instanceof Element && Boolean(target.closest(".graph-node, .graph-group-header"));
 }
 
 function TaskRow({
@@ -1094,6 +1144,8 @@ function buildGraphLayout(tasks: ParsedTask[]): GraphLayout {
 
   const layoutTasks = connectedIds.size > 0 ? tasks.filter((task) => connectedIds.has(task.id)) : tasks;
   const nodes = hasHierarchyEdges ? positionGraphNodesByHierarchy(layoutTasks) : positionGraphNodesByLevels(layoutTasks);
+  const childrenByParent = groupTasksByParent(layoutTasks);
+  const groups = hasHierarchyEdges ? buildGraphGroups(nodes, childrenByParent) : [];
 
   const nodesById = new Map(nodes.map((node) => [node.task.id, node]));
   const edges: GraphEdgeLayout[] = [];
@@ -1135,26 +1187,19 @@ function buildGraphLayout(tasks: ParsedTask[]): GraphLayout {
   return {
     dependencyEdgeCount: edges.filter((edge) => edge.kind === "dependency").length,
     edges,
+    groups,
     hierarchyEdgeCount: edges.filter((edge) => edge.kind === "hierarchy").length,
-    height: graphExtent(nodes, "height"),
+    height: graphExtent([...nodes, ...groups], "height"),
     hiddenIsolatedCount: connectedIds.size > 0 ? tasks.length - layoutTasks.length : 0,
     nodes,
-    width: graphExtent(nodes, "width")
+    width: graphExtent([...nodes, ...groups], "width")
   };
 }
 
 function positionGraphNodesByHierarchy(tasks: ParsedTask[]): GraphNodeLayout[] {
   const visibleIds = new Set(tasks.map((task) => task.id));
   const order = new Map(tasks.map((task, index) => [task.id, index]));
-  const childrenByParent = new Map<TaskId, ParsedTask[]>();
-
-  tasks.forEach((task) => {
-    if (!task.parent || !visibleIds.has(task.parent)) {
-      return;
-    }
-
-    childrenByParent.set(task.parent, [...(childrenByParent.get(task.parent) ?? []), task]);
-  });
+  const childrenByParent = groupTasksByParent(tasks);
 
   childrenByParent.forEach((children) => {
     children.sort((left, right) => (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0));
@@ -1176,7 +1221,9 @@ function positionGraphNodesByHierarchy(tasks: ParsedTask[]): GraphNodeLayout[] {
     nextNodeY += height + graphRowGap;
 
     nodes.push({
+      depth,
       height,
+      renderAsGroup: childrenByParent.has(task.id),
       task,
       width: graphNodeWidth,
       x: graphCanvasPadding + depth * (graphNodeWidth + graphColumnGap),
@@ -1203,6 +1250,7 @@ function positionGraphNodesByLevels(tasks: ParsedTask[]): GraphNodeLayout[] {
       const height = graphNodeHeightFor(task);
 
       nodes.push({
+        depth: levelIndex,
         height,
         task,
         width: graphNodeWidth,
@@ -1217,6 +1265,74 @@ function positionGraphNodesByLevels(tasks: ParsedTask[]): GraphNodeLayout[] {
   return nodes;
 }
 
+function groupTasksByParent(tasks: ParsedTask[]): Map<TaskId, ParsedTask[]> {
+  const visibleIds = new Set(tasks.map((task) => task.id));
+  const childrenByParent = new Map<TaskId, ParsedTask[]>();
+
+  tasks.forEach((task) => {
+    if (!task.parent || !visibleIds.has(task.parent)) {
+      return;
+    }
+
+    childrenByParent.set(task.parent, [...(childrenByParent.get(task.parent) ?? []), task]);
+  });
+
+  return childrenByParent;
+}
+
+function buildGraphGroups(nodes: GraphNodeLayout[], childrenByParent: Map<TaskId, ParsedTask[]>): GraphGroupLayout[] {
+  const nodesById = new Map(nodes.map((node) => [node.task.id, node]));
+
+  return nodes
+    .filter((node) => childrenByParent.has(node.task.id))
+    .map((node) => {
+      const descendantNodes = collectGraphDescendants(node.task.id, childrenByParent, nodesById);
+      const containedNodes = [node, ...descendantNodes];
+      const minX = Math.max(0, Math.min(...containedNodes.map((containedNode) => containedNode.x)) - graphGroupPadding);
+      const minY = Math.max(0, Math.min(...containedNodes.map((containedNode) => containedNode.y)) - graphGroupPadding);
+      const maxX = Math.max(...containedNodes.map((containedNode) => containedNode.x + containedNode.width));
+      const maxY = Math.max(...containedNodes.map((containedNode) => containedNode.y + containedNode.height));
+
+      return {
+        childCount: childrenByParent.get(node.task.id)?.length ?? 0,
+        depth: node.depth,
+        height: maxY - minY + graphGroupPadding,
+        nested: Boolean(node.task.parent && childrenByParent.has(node.task.parent)),
+        task: node.task,
+        width: maxX - minX + graphGroupPadding,
+        x: minX,
+        y: minY
+      };
+    })
+    .sort((left, right) => left.depth - right.depth || left.y - right.y || left.x - right.x);
+}
+
+function collectGraphDescendants(
+  taskId: TaskId,
+  childrenByParent: Map<TaskId, ParsedTask[]>,
+  nodesById: Map<TaskId, GraphNodeLayout>,
+  path = new Set<TaskId>()
+): GraphNodeLayout[] {
+  if (path.has(taskId)) {
+    return [];
+  }
+
+  const nextPath = new Set([...path, taskId]);
+  const descendants: GraphNodeLayout[] = [];
+
+  (childrenByParent.get(taskId) ?? []).forEach((child) => {
+    const childNode = nodesById.get(child.id);
+
+    if (!childNode) {
+      return;
+    }
+
+    descendants.push(childNode, ...collectGraphDescendants(child.id, childrenByParent, nodesById, nextPath));
+  });
+
+  return descendants;
+}
+
 function graphNodeHeightFor(task: ParsedTask): number {
   const estimatedTitleLines = Math.min(
     graphNodeMaxTitleLines,
@@ -1226,7 +1342,7 @@ function graphNodeHeightFor(task: ParsedTask): number {
   return Math.max(graphNodeMinHeight, graphNodeChromeHeight + estimatedTitleLines * graphNodeTitleLineHeight);
 }
 
-function graphExtent(nodes: GraphNodeLayout[], axis: "height" | "width"): number {
+function graphExtent(nodes: GraphBoxLayout[], axis: "height" | "width"): number {
   const minimum = axis === "height" ? 360 : 860;
   const edge = axis === "height" ? "y" : "x";
   const size = axis === "height" ? "height" : "width";
