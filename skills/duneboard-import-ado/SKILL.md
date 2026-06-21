@@ -56,3 +56,6 @@ then edit Markdown sections manually and validate.
 - Do not create dependencies for simple parent/child hierarchy.
 - Do not invent missing acceptance criteria; put gaps in `## Open Questions`.
 - Keep original ADO IDs visible in notes for traceability.
+- If exported specs or planning files are later folded into DuneBoard, use
+  `pnpm dune migrate source-specs` to produce a reviewable plan before moving
+  source material under the task archive.

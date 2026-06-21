@@ -61,6 +61,20 @@ content is omitted from the default text output to keep task reads compact; use
 `--with-design` to include it in the detail view or `--design` to print only the
 raw `## Design` section for review, migration, or agent handoff.
 
+### Migrate Source Specs
+
+```bash
+pnpm dune migrate source-specs
+pnpm dune migrate source-specs --json
+```
+
+Builds a reviewable source-spec migration plan. The plan classifies Markdown
+files as task-related specs, non-task documentation, generated documentation,
+existing task archives, or unknown files. Task-related specs include an owning
+task when detected, a proposed `<taskRoot>/archive/...` path, required
+`## Design` review steps, and a provenance note to copy into the task notes or
+work log before moving the source file.
+
 ## Write Commands
 
 ### Create

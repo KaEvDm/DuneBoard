@@ -14,6 +14,11 @@ import {
   writeTaskFile
 } from "./board-files";
 import { printIssues, printTask, printTaskDesign, printTaskDetail, taskById, toTaskSummary } from "./format";
+import {
+  createSourceSpecMigrationPlan,
+  formatSourceSpecMigrationPlan,
+  readSourceSpecCandidateFiles
+} from "./source-spec-migration";
 
 const program = new Command();
 
@@ -110,6 +115,30 @@ program
     }
 
     console.log(printTaskDetail(task, { includeDesign: options.withDesign }));
+  });
+
+const migrate = program.command("migrate").description("Plan repository migration workflows.");
+
+migrate
+  .command("source-specs")
+  .description("Print a reviewable plan for folding task-related specs into task Design sections.")
+  .option("--json", "print JSON output")
+  .action(async (options) => {
+    const board = await loadBoard(rootOption());
+    const files = await readSourceSpecCandidateFiles(board.root, board.taskDirs);
+    const plan = createSourceSpecMigrationPlan({
+      files,
+      root: board.root,
+      taskDirs: board.taskDirs,
+      tasks: board.index.tasks
+    });
+
+    if (options.json) {
+      printJson(plan);
+      return;
+    }
+
+    console.log(formatSourceSpecMigrationPlan(plan));
   });
 
 const task = program.command("task").description("Create and update tasks.");
