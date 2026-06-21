@@ -4,8 +4,8 @@ export function printTask(task: ParsedTask): string {
   return `${task.id}  ${task.priority}  ${task.status.padEnd(11)}  ${task.kind.padEnd(8)}  ${task.title}`;
 }
 
-export function printTaskDetail(task: ParsedTask): string {
-  return [
+export function printTaskDetail(task: ParsedTask, options: { includeDesign?: boolean } = {}): string {
+  const lines = [
     `${task.id} ${task.title}`,
     "",
     `Kind:     ${task.kind}`,
@@ -16,7 +16,14 @@ export function printTaskDetail(task: ParsedTask): string {
     `Labels:   ${task.labels.length ? task.labels.join(", ") : "none"}`,
     "",
     "Goal:",
-    task.sections.Goal || "None",
+    task.sections.Goal || "None"
+  ];
+
+  if (options.includeDesign) {
+    lines.push("", "Design:", task.sections.Design || "None");
+  }
+
+  lines.push(
     "",
     "Acceptance Criteria:",
     task.acceptance.length ? task.acceptance.map((item) => `- [${item.checked ? "x" : " "}] ${item.text}`).join("\n") : "None",
@@ -26,7 +33,13 @@ export function printTaskDetail(task: ParsedTask): string {
     "",
     "Work Log:",
     task.sections["Work Log"] || "None"
-  ].join("\n");
+  );
+
+  return lines.join("\n");
+}
+
+export function printTaskDesign(task: ParsedTask): string {
+  return task.sections.Design?.trim() ?? "";
 }
 
 export function printIssues(issues: BoardIssue[]): string {
@@ -62,4 +75,3 @@ export function taskById(tasksById: Record<TaskId, ParsedTask>, id: string): Par
 
   return task;
 }
-

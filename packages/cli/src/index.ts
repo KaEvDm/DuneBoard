@@ -12,7 +12,7 @@ import {
   updateTaskFields,
   writeTaskFile
 } from "./board-files";
-import { printIssues, printTask, printTaskDetail, taskById, toTaskSummary } from "./format";
+import { printIssues, printTask, printTaskDesign, printTaskDetail, taskById, toTaskSummary } from "./format";
 
 const program = new Command();
 
@@ -85,6 +85,8 @@ program
   .command("show")
   .description("Show a task detail.")
   .argument("<id>", "task ID")
+  .option("--with-design", "include design content in the detail output")
+  .option("--design", "print only the design content")
   .option("--json", "print JSON output")
   .action(async (id, options) => {
     const board = await loadBoard(rootOption());
@@ -95,7 +97,12 @@ program
       return;
     }
 
-    console.log(printTaskDetail(task));
+    if (options.design) {
+      console.log(printTaskDesign(task));
+      return;
+    }
+
+    console.log(printTaskDetail(task, { includeDesign: options.withDesign }));
   });
 
 const task = program.command("task").description("Create and update tasks.");

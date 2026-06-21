@@ -14,6 +14,8 @@ to plan, take, update, or close DuneBoard work.
 - Prefer `pnpm dune ...` commands over manual frontmatter edits.
 - Do not invent task IDs; let `pnpm dune task create` allocate them.
 - Do not add dependencies unless they are real sequencing constraints.
+- Treat `## Design` as canonical design content when present; update it before
+  relying on archived specs.
 - Keep work-log updates short, dated, and factual.
 
 ## Start
@@ -21,6 +23,13 @@ to plan, take, update, or close DuneBoard work.
 ```bash
 pnpm dune validate
 pnpm dune next
+```
+
+Read the task-owned design directly when a task has one:
+
+```bash
+pnpm dune show DB-0007 --design
+pnpm dune show DB-0007 --with-design
 ```
 
 If `next` returns executable tasks, pick the highest-priority task that matches
@@ -67,6 +76,7 @@ Manual edits are acceptable for body text and acceptance criteria. Preserve:
 - YAML frontmatter shape
 - `id`
 - standard sections
+- `## Design` content when it carries the canonical spec
 - existing work-log history
 
 Run validation after manual edits:

@@ -3,6 +3,7 @@ import {
   BookOpenText,
   Boxes,
   Bug,
+  ChevronDown,
   CheckCircle2,
   CircleDot,
   ClipboardCheck,
@@ -773,6 +774,7 @@ function TaskDetail({
       </div>
 
       <DetailSection title="Goal">{task.sections.Goal}</DetailSection>
+      <DesignSection>{task.sections.Design}</DesignSection>
 
       <section className="detail-section">
         <div className="detail-section-heading">
@@ -799,9 +801,26 @@ function TaskDetail({
         <RelationList board={board} label="Labels" values={task.labels} />
       </section>
 
+      <DetailSection title="Notes">{task.sections.Notes}</DetailSection>
       <DetailSection title="Open Questions">{task.sections["Open Questions"]}</DetailSection>
       <DetailSection title="Work Log">{task.sections["Work Log"]}</DetailSection>
     </section>
+  );
+}
+
+function DesignSection({ children }: { children: string | undefined }) {
+  if (!children?.trim()) {
+    return null;
+  }
+
+  return (
+    <details className="detail-section collapsible-section">
+      <summary>
+        <span>Design</span>
+        <ChevronDown size={15} />
+      </summary>
+      <div className="markdown-text">{children}</div>
+    </details>
   );
 }
 
@@ -809,7 +828,7 @@ function DetailSection({ children, title }: { children: string | undefined; titl
   return (
     <section className="detail-section">
       <h3>{title}</h3>
-      <p className="markdown-text">{children || "None"}</p>
+      <div className="markdown-text">{children || "None"}</div>
     </section>
   );
 }
@@ -919,6 +938,8 @@ function taskMatchesQuery(task: ParsedTask, normalizedQuery: string): boolean {
     task.priority,
     ...task.labels,
     task.sections.Goal ?? "",
+    task.sections.Design ?? "",
+    task.sections.Notes ?? "",
     task.sections["Open Questions"] ?? ""
   ]
     .join(" ")

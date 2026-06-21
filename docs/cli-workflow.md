@@ -48,10 +48,15 @@ Lists tasks, optionally filtered by status.
 
 ```bash
 pnpm dune show DB-0004
+pnpm dune show DB-0004 --with-design
+pnpm dune show DB-0004 --design
 pnpm dune show DB-0004 --json
 ```
 
-Shows task details, acceptance criteria, open questions, and work log.
+Shows task details, acceptance criteria, open questions, and work log. Design
+content is omitted from the default text output to keep task reads compact; use
+`--with-design` to include it in the detail view or `--design` to print only the
+raw `## Design` section for review, migration, or agent handoff.
 
 ## Write Commands
 
