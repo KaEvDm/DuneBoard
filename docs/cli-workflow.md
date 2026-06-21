@@ -22,6 +22,9 @@ pnpm dune validate --json
 ```
 
 Validates task files and graph links.
+The default live scan ignores `<taskRoot>/archive/**`; validate prints the
+ignored archive subtrees so archived specs, status logs, and old task files can
+stay in the repository without creating duplicate live IDs or parse errors.
 
 ### Next
 

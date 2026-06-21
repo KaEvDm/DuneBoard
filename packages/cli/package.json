@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",
     "start": "tsx src/index.ts",
-    "test": "echo \"No CLI tests yet\""
+    "test": "vitest run"
   },
   "dependencies": {
     "@duneboard/core": "workspace:*",

@@ -115,7 +115,9 @@ function loadProjects(): BoardProject[] {
     projects.set(project.id, project);
   });
 
-  return [...projects.values()].filter((project) => existsSync(path.join(project.root, "tasks")));
+  return [...projects.values()].filter((project) =>
+    readTaskRoots(project.root).some((taskRoot) => existsSync(path.join(project.root, taskRoot)))
+  );
 }
 
 function readProjectConfig(configPath: string): BoardProject[] {
@@ -147,28 +149,89 @@ function normalizeProject(project: NonNullable<ProjectConfig["projects"]>[number
 }
 
 function readBoardFiles(root: string): Array<{ path: string; content: string }> {
-  const taskDir = path.join(root, "tasks");
+  const taskRoots = readTaskRoots(root);
+  const taskDirs = taskRoots.map((taskRoot) => path.join(root, taskRoot));
 
-  if (!existsSync(taskDir)) {
-    throw new Error(`DuneBoard task directory not found: ${taskDir}`);
+  if (!taskDirs.some((taskDir) => existsSync(taskDir))) {
+    throw new Error(`DuneBoard task directory not found in: ${taskDirs.join(", ")}`);
   }
 
-  return readdirSync(taskDir, { withFileTypes: true })
-    .filter((entry) => entry.isFile())
-    .filter((entry) => entry.name.endsWith(".md"))
-    .map((entry) => {
-      const absolutePath = path.join(taskDir, entry.name);
+  return taskDirs
+    .flatMap((taskDir) => readBoardFilesFromTaskDir(taskDir, taskDir, root))
+    .sort((left, right) => left.path.localeCompare(right.path));
+}
 
-      return {
+function readBoardFilesFromTaskDir(
+  currentDir: string,
+  taskDir: string,
+  root: string
+): Array<{ path: string; content: string }> {
+  if (!existsSync(currentDir)) {
+    return [];
+  }
+
+  return readdirSync(currentDir, { withFileTypes: true }).flatMap((entry) => {
+    const absolutePath = path.join(currentDir, entry.name);
+
+    if (entry.isDirectory()) {
+      if (isArchiveSubtree(absolutePath, taskDir)) {
+        return [];
+      }
+
+      return readBoardFilesFromTaskDir(absolutePath, taskDir, root);
+    }
+
+    if (!entry.isFile() || !entry.name.endsWith(".md")) {
+      return [];
+    }
+
+    return [
+      {
         path: path.relative(root, absolutePath).replace(/\\/g, "/"),
         content: readFileSync(absolutePath, "utf8")
-      };
-    })
-    .sort((left, right) => left.path.localeCompare(right.path));
+      }
+    ];
+  });
+}
+
+function readTaskRoots(root: string): string[] {
+  const configPath = path.join(root, ".duneboard", "config.yml");
+
+  if (!existsSync(configPath)) {
+    return ["tasks"];
+  }
+
+  const lines = readFileSync(configPath, "utf8").split(/\r?\n/);
+  const taskRoots: string[] = [];
+  let inTaskRoots = false;
+
+  for (const line of lines) {
+    if (/^task_roots:\s*$/.test(line)) {
+      inTaskRoots = true;
+      continue;
+    }
+
+    if (inTaskRoots && /^\S/.test(line)) {
+      break;
+    }
+
+    const match = inTaskRoots ? line.match(/^\s*-\s*["']?(.+?)["']?\s*$/) : null;
+
+    if (match?.[1]) {
+      taskRoots.push(match[1].trim());
+    }
+  }
+
+  return taskRoots.length > 0 ? taskRoots : ["tasks"];
 }
 
 function writeJson(response: ServerResponse, status: number, value: unknown): void {
   response.statusCode = status;
   response.setHeader("Content-Type", "application/json; charset=utf-8");
   response.end(JSON.stringify(value));
+}
+
+function isArchiveSubtree(absolutePath: string, taskDir: string): boolean {
+  const relativeParts = path.relative(taskDir, absolutePath).split(path.sep);
+  return relativeParts[0]?.toLowerCase() === "archive";
 }

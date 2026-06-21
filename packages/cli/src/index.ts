@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import path from "node:path";
 import { taskKindSchema, taskPrioritySchema, taskStatusSchema, type ParsedTask } from "@duneboard/core";
 import {
   appendWorkLog,
@@ -29,12 +30,18 @@ program
     const board = await loadBoard(rootOption());
 
     if (options.json) {
-      printJson({ ok: board.index.issues.length === 0, issues: board.index.issues });
+      printJson({
+        ok: board.index.issues.length === 0,
+        liveTasks: board.index.tasks.length,
+        ignoredArchiveSubtrees: archiveSubtrees(board),
+        issues: board.index.issues
+      });
       return;
     }
 
     if (board.index.issues.length === 0) {
-      console.log(`OK ${board.index.tasks.length} tasks validated.`);
+      console.log(`OK ${board.index.tasks.length} live tasks validated.`);
+      console.log(`Ignored archive subtrees: ${archiveSubtrees(board).join(", ")}`);
       return;
     }
 
@@ -161,10 +168,10 @@ task
     const selectedTask = taskById(board.index.tasksById, id);
     dependencyIds.forEach((dependencyId) => taskById(board.index.tasksById, dependencyId));
 
-    const content = await readTaskFile(board.taskDir, selectedTask);
+    const content = await readTaskFile(board.root, selectedTask);
     const withDependencies = addTaskDependencies(content, dependencyIds);
     const updated = appendWorkLog(withDependencies, `Linked dependencies: ${dependencyIds.join(", ")}.`);
-    await writeTaskFile(board.taskDir, selectedTask, updated);
+    await writeTaskFile(board.root, selectedTask, updated);
     console.log(`Linked ${selectedTask.id} to ${dependencyIds.join(", ")}`);
   });
 
@@ -176,9 +183,9 @@ task
   .action(async (id, noteParts: string[]) => {
     const board = await loadBoard(rootOption());
     const selectedTask = taskById(board.index.tasksById, id);
-    const content = await readTaskFile(board.taskDir, selectedTask);
+    const content = await readTaskFile(board.root, selectedTask);
     const updated = appendWorkLog(content, noteParts.join(" "));
-    await writeTaskFile(board.taskDir, selectedTask, updated);
+    await writeTaskFile(board.root, selectedTask, updated);
     console.log(`Updated ${selectedTask.id}`);
   });
 
@@ -190,14 +197,14 @@ task
   .action(async (id, options) => {
     const board = await loadBoard(rootOption());
     const selectedTask = taskById(board.index.tasksById, id);
-    const content = await readTaskFile(board.taskDir, selectedTask);
+    const content = await readTaskFile(board.root, selectedTask);
     const withClaim = updateTaskFields(content, {
       assignee: options.agent,
       status: "in_progress",
       updated_at: new Date().toISOString()
     });
     const updated = appendWorkLog(withClaim, `Claimed by ${options.agent}.`);
-    await writeTaskFile(board.taskDir, selectedTask, updated);
+    await writeTaskFile(board.root, selectedTask, updated);
     console.log(`Claimed ${selectedTask.id} for ${options.agent}`);
   });
 
@@ -210,14 +217,14 @@ task
     const status = taskStatusSchema.parse(options.status);
     const board = await loadBoard(rootOption());
     const selectedTask = taskById(board.index.tasksById, id);
-    const content = await readTaskFile(board.taskDir, selectedTask);
+    const content = await readTaskFile(board.root, selectedTask);
     const withRelease = updateTaskFields(content, {
       assignee: null,
       status,
       updated_at: new Date().toISOString()
     });
     const updated = appendWorkLog(withRelease, `Released with status ${status}.`);
-    await writeTaskFile(board.taskDir, selectedTask, updated);
+    await writeTaskFile(board.root, selectedTask, updated);
     console.log(`Released ${selectedTask.id} to ${status}`);
   });
 
@@ -229,14 +236,14 @@ task
   .action(async (id, options) => {
     const board = await loadBoard(rootOption());
     const selectedTask = taskById(board.index.tasksById, id);
-    const content = await readTaskFile(board.taskDir, selectedTask);
+    const content = await readTaskFile(board.root, selectedTask);
     const withDone = updateTaskFields(content, {
       assignee: null,
       status: "done",
       updated_at: new Date().toISOString()
     });
     const updated = appendWorkLog(withDone, `Completed. ${options.summary}`);
-    await writeTaskFile(board.taskDir, selectedTask, updated);
+    await writeTaskFile(board.root, selectedTask, updated);
     console.log(`Completed ${selectedTask.id}`);
   });
 
@@ -249,9 +256,9 @@ task
     const status = taskStatusSchema.parse(statusInput);
     const board = await loadBoard(rootOption());
     const selectedTask = taskById(board.index.tasksById, id);
-    const content = await readTaskFile(board.taskDir, selectedTask);
+    const content = await readTaskFile(board.root, selectedTask);
     const updated = setTaskStatus(content, status);
-    await writeTaskFile(board.taskDir, selectedTask, updated);
+    await writeTaskFile(board.root, selectedTask, updated);
     console.log(`Set ${selectedTask.id} to ${status}`);
   });
 
@@ -271,4 +278,12 @@ function rootOption(): string {
 
 function printJson(value: unknown): void {
   console.log(JSON.stringify(value, null, 2));
+}
+
+function archiveSubtrees(board: Awaited<ReturnType<typeof loadBoard>>): string[] {
+  return board.archiveDirs.map((archiveDir) => `${pathRelative(board.root, archiveDir)}/**`);
+}
+
+function pathRelative(root: string, absolutePath: string): string {
+  return path.relative(root, absolutePath).replace(/\\/g, "/");
 }

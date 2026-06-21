@@ -6,31 +6,38 @@ import { parseDocument, stringify } from "yaml";
 const taskFilePattern = /^DB-\d{4}-.+\.md$/;
 
 export type LoadedBoard = {
+  archiveDirs: string[];
   root: string;
   taskDir: string;
+  taskDirs: string[];
   files: BoardFile[];
   index: ReturnType<typeof buildBoardIndex>;
 };
 
 export async function loadBoard(rootInput: string): Promise<LoadedBoard> {
   const root = path.resolve(rootInput);
-  const taskDir = path.join(root, "tasks");
-  const files = await readMarkdownTaskFiles(taskDir, root);
+  const taskRoots = await readTaskRoots(root);
+  const taskDirs = taskRoots.map((taskRoot) => path.join(root, taskRoot));
+  const files = (
+    await Promise.all(taskDirs.map((taskDir) => readMarkdownTaskFiles(taskDir, root)))
+  ).flat();
 
   return {
+    archiveDirs: taskDirs.map((taskDir) => path.join(taskDir, "archive")),
     root,
-    taskDir,
+    taskDir: taskDirs[0] ?? path.join(root, "tasks"),
+    taskDirs,
     files,
     index: buildBoardIndex(files)
   };
 }
 
-export async function readTaskFile(taskDir: string, task: ParsedTask): Promise<string> {
-  return fs.readFile(path.join(taskDir, path.basename(task.filePath)), "utf8");
+export async function readTaskFile(root: string, task: ParsedTask): Promise<string> {
+  return fs.readFile(path.join(root, task.filePath), "utf8");
 }
 
-export async function writeTaskFile(taskDir: string, task: ParsedTask, content: string): Promise<void> {
-  await fs.writeFile(path.join(taskDir, path.basename(task.filePath)), content);
+export async function writeTaskFile(root: string, task: ParsedTask, content: string): Promise<void> {
+  await fs.writeFile(path.join(root, task.filePath), content);
 }
 
 export async function createTaskFile(options: {
@@ -131,7 +138,20 @@ export function parseLabels(values: string[] | undefined): string[] {
 }
 
 async function readMarkdownTaskFiles(taskDir: string, root: string): Promise<BoardFile[]> {
-  const entries = await fs.readdir(taskDir, { withFileTypes: true }).catch((error: unknown) => {
+  const files: BoardFile[] = [];
+
+  await readMarkdownTaskFilesRecursive(taskDir, taskDir, root, files);
+
+  return files.sort((left, right) => left.path.localeCompare(right.path));
+}
+
+async function readMarkdownTaskFilesRecursive(
+  currentDir: string,
+  taskDir: string,
+  root: string,
+  files: BoardFile[]
+): Promise<void> {
+  const entries = await fs.readdir(currentDir, { withFileTypes: true }).catch((error: unknown) => {
     if (isNodeError(error) && error.code === "ENOENT") {
       return [];
     }
@@ -139,20 +159,51 @@ async function readMarkdownTaskFiles(taskDir: string, root: string): Promise<Boa
     throw error;
   });
 
-  const files = await Promise.all(
-    entries
-      .filter((entry) => entry.isFile())
-      .filter((entry) => entry.name.endsWith(".md"))
-      .map(async (entry) => {
-        const absolutePath = path.join(taskDir, entry.name);
-        return {
-          path: path.relative(root, absolutePath).replace(/\\/g, "/"),
-          content: await fs.readFile(absolutePath, "utf8")
-        };
-      })
-  );
+  await Promise.all(
+    entries.map(async (entry) => {
+      const absolutePath = path.join(currentDir, entry.name);
 
-  return files.sort((left, right) => left.path.localeCompare(right.path));
+      if (entry.isDirectory()) {
+        if (isArchiveSubtree(absolutePath, taskDir)) {
+          return;
+        }
+
+        await readMarkdownTaskFilesRecursive(absolutePath, taskDir, root, files);
+        return;
+      }
+
+      if (!entry.isFile() || !entry.name.endsWith(".md")) {
+        return;
+      }
+
+      files.push({
+        path: path.relative(root, absolutePath).replace(/\\/g, "/"),
+        content: await fs.readFile(absolutePath, "utf8")
+      });
+    })
+  );
+}
+
+async function readTaskRoots(root: string): Promise<string[]> {
+  const configPath = path.join(root, ".duneboard", "config.yml");
+  const content = await fs.readFile(configPath, "utf8").catch((error: unknown) => {
+    if (isNodeError(error) && error.code === "ENOENT") {
+      return "";
+    }
+
+    throw error;
+  });
+
+  if (!content) {
+    return ["tasks"];
+  }
+
+  const parsed = parseDocument(content).toJSON() as { task_roots?: unknown } | null;
+  const taskRoots = Array.isArray(parsed?.task_roots)
+    ? parsed.task_roots.map(String).map((taskRoot) => taskRoot.trim()).filter(Boolean)
+    : [];
+
+  return taskRoots.length > 0 ? taskRoots : ["tasks"];
 }
 
 function updateFrontmatter(content: string, update: (frontmatter: ReturnType<typeof parseDocument>) => void): string {
@@ -205,6 +256,11 @@ function splitMultiValue(values: string[] | undefined): string[] {
         .filter(Boolean)
     )
   ];
+}
+
+function isArchiveSubtree(absolutePath: string, taskDir: string): boolean {
+  const relativeParts = path.relative(taskDir, absolutePath).split(path.sep);
+  return relativeParts[0]?.toLowerCase() === "archive";
 }
 
 function dateStamp(): string {
