@@ -1,6 +1,6 @@
 {
   "name": "duneboard",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "private": true,
   "description": "Local-first task graph for AI agents and humans.",
   "license": "MIT",

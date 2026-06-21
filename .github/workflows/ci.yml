@@ -61,7 +61,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ids="$(find tasks -name '*.md' -print0 | xargs -0 grep -hE '^id: DB-[0-9]{4}$' | sort || true)"
+          ids="$(find tasks -path '*/archive/*' -prune -o -name '*.md' -print0 | xargs -0 grep -hE '^id: DB-[0-9]{4}$' | sort || true)"
           duplicates="$(printf '%s\n' "$ids" | uniq -d)"
           if [ -n "$duplicates" ]; then
             echo "Duplicate task IDs:"

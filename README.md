@@ -11,7 +11,7 @@ those files as a fast visual board, graph, and agent-ready execution queue.
 
 ## Status
 
-Workflow consolidation release. `v0.11.0` makes task-owned `## Design` content
+Workflow consolidation release. `v0.11.1` makes task-owned `## Design` content
 the canonical source for active work, adds source-spec migration and archive
 scan semantics, improves graph navigation, and adds project initialization
 guidance for new local boards.
