@@ -640,6 +640,20 @@ button {
   border-top: 2px dashed #2563eb;
 }
 
+.graph-pan-area {
+  cursor: grab;
+  max-height: min(720px, calc(100vh - 230px));
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
+  touch-action: none;
+}
+
+.graph-pan-area.panning {
+  cursor: grabbing;
+  user-select: none;
+}
+
 .graph-canvas {
   position: relative;
 }

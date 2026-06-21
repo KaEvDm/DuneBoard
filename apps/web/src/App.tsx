@@ -19,7 +19,7 @@ import {
   Wrench,
   X
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { executableTaskKinds, type ParsedTask, type TaskId, type TaskKind, type TaskStatus } from "@duneboard/core";
 import { emptyBoard, fetchProjectBoard, fetchProjects, type BoardIndex, type BoardProject } from "./board-data";
 
@@ -100,6 +100,14 @@ type GraphNodeLayout = {
   height: number;
   task: ParsedTask;
   width: number;
+  x: number;
+  y: number;
+};
+
+type GraphPanState = {
+  pointerId: number;
+  scrollLeft: number;
+  scrollTop: number;
   x: number;
   y: number;
 };
@@ -577,6 +585,58 @@ function GraphView({
   tasks: ParsedTask[];
 }) {
   const layout = useMemo(() => buildGraphLayout(tasks), [tasks]);
+  const panViewportRef = useRef<HTMLDivElement>(null);
+  const panStateRef = useRef<GraphPanState | undefined>(undefined);
+  const [isPanning, setIsPanning] = useState(false);
+
+  const startPanning = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || isGraphNodeTarget(event.target)) {
+      return;
+    }
+
+    const viewport = panViewportRef.current;
+
+    if (!viewport) {
+      return;
+    }
+
+    panStateRef.current = {
+      pointerId: event.pointerId,
+      scrollLeft: viewport.scrollLeft,
+      scrollTop: viewport.scrollTop,
+      x: event.clientX,
+      y: event.clientY
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setIsPanning(true);
+    event.preventDefault();
+  };
+
+  const panGraph = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const panState = panStateRef.current;
+    const viewport = panViewportRef.current;
+
+    if (!panState || !viewport || event.pointerId !== panState.pointerId) {
+      return;
+    }
+
+    viewport.scrollLeft = panState.scrollLeft - (event.clientX - panState.x);
+    viewport.scrollTop = panState.scrollTop - (event.clientY - panState.y);
+    event.preventDefault();
+  };
+
+  const stopPanning = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (panStateRef.current?.pointerId !== event.pointerId) {
+      return;
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    panStateRef.current = undefined;
+    setIsPanning(false);
+  };
 
   if (tasks.length === 0) {
     return (
@@ -604,70 +664,84 @@ function GraphView({
           Parent to child
         </span>
       </div>
-      <div className="graph-canvas" style={{ height: layout.height, width: layout.width }}>
-        <svg
-          aria-hidden="true"
-          className="graph-edges"
-          height={layout.height}
-          viewBox={`0 0 ${layout.width} ${layout.height}`}
-          width={layout.width}
-        >
-          <defs>
-            <marker
-              id="dependency-arrow"
-              markerHeight="10"
-              markerWidth="10"
-              orient="auto"
-              refX="9"
-              refY="5"
-              viewBox="0 0 10 10"
-            >
-              <path d="M 0 0 L 10 5 L 0 10 z" />
-            </marker>
-            <marker
-              id="hierarchy-arrow"
-              markerHeight="10"
-              markerWidth="10"
-              orient="auto"
-              refX="9"
-              refY="5"
-              viewBox="0 0 10 10"
-            >
-              <path d="M 0 0 L 10 5 L 0 10 z" />
-            </marker>
-          </defs>
-          {layout.edges.map((edge) => (
-            <path
-              className={`graph-edge ${edge.kind}`}
-              d={edge.path}
-              key={`${edge.kind}-${edge.from}-${edge.to}`}
-              markerEnd={edge.kind === "dependency" ? "url(#dependency-arrow)" : "url(#hierarchy-arrow)"}
-            />
-          ))}
-        </svg>
-        {layout.nodes.map((node) => (
-          <button
-            className={`graph-node ${node.task.id === selectedTaskId ? "selected" : ""}`}
-            key={node.task.id}
-            onClick={() => onSelect(node.task.id)}
-            style={{ height: node.height, left: node.x, top: node.y, width: node.width }}
-            title={node.task.title}
-            type="button"
+      <div
+        className={`graph-pan-area ${isPanning ? "panning" : ""}`}
+        onLostPointerCapture={stopPanning}
+        onPointerCancel={stopPanning}
+        onPointerDown={startPanning}
+        onPointerMove={panGraph}
+        onPointerUp={stopPanning}
+        ref={panViewportRef}
+      >
+        <div className="graph-canvas" style={{ height: layout.height, width: layout.width }}>
+          <svg
+            aria-hidden="true"
+            className="graph-edges"
+            height={layout.height}
+            viewBox={`0 0 ${layout.width} ${layout.height}`}
+            width={layout.width}
           >
-            <div className="node-topline">
-              <span>{node.task.id}</span>
-              <ReadinessPill state={readinessFor(node.task, board)} />
-            </div>
-            <strong>{node.task.title}</strong>
-            <div className="node-pills">
-              <StatusPill status={node.task.status} />
-              <KindPill kind={node.task.kind} />
-            </div>
-          </button>
-        ))}
+            <defs>
+              <marker
+                id="dependency-arrow"
+                markerHeight="10"
+                markerWidth="10"
+                orient="auto"
+                refX="9"
+                refY="5"
+                viewBox="0 0 10 10"
+              >
+                <path d="M 0 0 L 10 5 L 0 10 z" />
+              </marker>
+              <marker
+                id="hierarchy-arrow"
+                markerHeight="10"
+                markerWidth="10"
+                orient="auto"
+                refX="9"
+                refY="5"
+                viewBox="0 0 10 10"
+              >
+                <path d="M 0 0 L 10 5 L 0 10 z" />
+              </marker>
+            </defs>
+            {layout.edges.map((edge) => (
+              <path
+                className={`graph-edge ${edge.kind}`}
+                d={edge.path}
+                key={`${edge.kind}-${edge.from}-${edge.to}`}
+                markerEnd={edge.kind === "dependency" ? "url(#dependency-arrow)" : "url(#hierarchy-arrow)"}
+              />
+            ))}
+          </svg>
+          {layout.nodes.map((node) => (
+            <button
+              className={`graph-node ${node.task.id === selectedTaskId ? "selected" : ""}`}
+              key={node.task.id}
+              onClick={() => onSelect(node.task.id)}
+              style={{ height: node.height, left: node.x, top: node.y, width: node.width }}
+              title={node.task.title}
+              type="button"
+            >
+              <div className="node-topline">
+                <span>{node.task.id}</span>
+                <ReadinessPill state={readinessFor(node.task, board)} />
+              </div>
+              <strong>{node.task.title}</strong>
+              <div className="node-pills">
+                <StatusPill status={node.task.status} />
+                <KindPill kind={node.task.kind} />
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   );
+}
+
+function isGraphNodeTarget(target: EventTarget): boolean {
+  return target instanceof Element && Boolean(target.closest(".graph-node"));
 }
 
 function TaskRow({
