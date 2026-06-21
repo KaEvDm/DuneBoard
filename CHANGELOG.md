@@ -9,6 +9,55 @@ once implementation releases begin.
 
 No unreleased changes yet.
 
+## [0.11.0] - 2026-06-21
+
+### Added
+
+- Added task-owned `## Design` guidance as the canonical source for active
+  feature and decision design.
+- Added CLI affordances for reading design content and planning source-spec
+  migrations into task records.
+- Added live task-root archive semantics so `<taskRoot>/archive/**` stays out
+  of validation, ready queues, and graph indexing.
+- Added graph container groups and mouse drag panning for large hierarchy-heavy
+  boards.
+- Added a multi-status filter in the web UI.
+- Added a `duneboard-init-project` skill and Windows launcher scripts for local
+  project setup.
+
+### Changed
+
+- Clarified project-local skill installation paths for Codex and Claude.
+- Updated the product docs to allow multiple task roots and task-owned design
+  sections.
+- Archived historical release tasks from the live board to avoid duplicate live
+  task IDs.
+
+## [0.10.0] - 2026-06-16
+
+### Added
+
+- Added a persisted dark theme toggle to the web UI.
+
+### Changed
+
+- Reworked web UI colors around theme variables so list, board, graph, filters,
+  task details, and status pills support both light and dark themes.
+
+## [0.9.0] - 2026-06-13
+
+### Added
+
+- Added a visual work-item graph with SVG arrows for dependency relationships.
+- Added parent-to-child graph arrows so hierarchy-heavy boards are readable.
+
+### Changed
+
+- Replaced dependency-level graph lanes with a hierarchy-first graph layout.
+- Improved graph cards so long task titles remain readable on large boards.
+- Clarified web UI status/readiness badges and hid readiness/priority when they
+  are not meaningful for closed tasks.
+
 ## [0.8.0] - 2026-06-02
 
 ### Added
@@ -98,7 +147,10 @@ No unreleased changes yet.
 - Initial project board written in DuneBoard Markdown task files.
 - Initial agent skill draft.
 
-[Unreleased]: https://github.com/KaEvDm/DuneBoard/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/KaEvDm/DuneBoard/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.10.0...v0.11.0
+[0.10.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.9.0...v0.10.0
+[0.9.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.5.0...v0.6.0

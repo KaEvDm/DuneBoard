@@ -1,6 +1,6 @@
 {
   "name": "@duneboard/cli",
-  "version": "0.8.0",
+  "version": "0.11.0",
   "private": true,
   "type": "module",
   "description": "DuneBoard command line workflow for agents and humans.",

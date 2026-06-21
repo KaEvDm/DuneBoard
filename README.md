@@ -11,9 +11,10 @@ those files as a fast visual board, graph, and agent-ready execution queue.
 
 ## Status
 
-Project selector release. `v0.8.0` lets the web UI open configured DuneBoard
-project roots and switch between them from the sidebar while keeping the
-repository-local board as the default.
+Workflow consolidation release. `v0.11.0` makes task-owned `## Design` content
+the canonical source for active work, adds source-spec migration and archive
+scan semantics, improves graph navigation, and adds project initialization
+guidance for new local boards.
 
 ## Why
 
