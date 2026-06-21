@@ -2,7 +2,7 @@
 id: DB-0015
 title: Make DuneBoard the canonical design source of truth
 kind: epic
-status: ready
+status: done
 priority: P0
 parent: DB-0001
 depends_on: []
@@ -15,7 +15,7 @@ labels:
   - archive
   - source-of-truth
 created_at: 2026-06-21T20:02:09Z
-updated_at: 2026-06-21T20:02:09Z
+updated_at: 2026-06-21T22:14:12.826Z
 ---
 
 ## Goal
@@ -42,19 +42,19 @@ when a single file becomes too large to review comfortably.
 The old import stance, "source specs and design docs are preserved because tasks
 are executable summaries", should become a transitional migration rule: preserve
 source specs until their unique design facts are folded into the DuneBoard task,
-then move the original task-related artifact under `task/archive/` with
+then move the original task-related artifact under `<taskRoot>/archive/` with
 provenance.
 
 ## Acceptance Criteria
 
-- [ ] The canonical location for active task-owned design content is specified.
-- [ ] The migration path from external task-related specs into `## Design` is
+- [x] The canonical location for active task-owned design content is specified.
+- [x] The migration path from external task-related specs into `## Design` is
   documented.
-- [ ] Archive semantics are specified so stale task material does not appear as
+- [x] Archive semantics are specified so stale task material does not appear as
   live work.
-- [ ] UI, CLI, and skills consistently treat DuneBoard tasks as the source of
+- [x] UI, CLI, and skills consistently treat DuneBoard tasks as the source of
   truth when `## Design` exists.
-- [ ] Non-task documentation systems remain allowed outside the task root.
+- [x] Non-task documentation systems remain allowed outside the task root.
 
 ## Notes
 
@@ -66,10 +66,17 @@ Wiki-LLM system had to remain outside DuneBoard ownership.
 
 - Should the long-form design extension be native `<details>` inside one task
   file, a task bundle directory, or both?
+  - Resolved 2026-06-21: use native `<details>` inside the task file now; keep
+    task bundles as a future option for very large records.
 - Should `## Design` be required for epics/features, or only recommended until
   a task references external specs?
+  - Resolved 2026-06-21: optional at the parser level; required by authoring
+    policy for durable decisions and recommended when a task owns design facts.
 
 ## Work Log
 
 - 2026-06-21: Created after project cleanup exposed the need for a stricter
   design-source-of-truth model.
+- 2026-06-21: Closed remaining criteria after schema, archive scan, migration,
+  UI, CLI, and skill guidance were implemented in child tasks.
+- 2026-06-21: Completed. Canonical design-source workflow is documented across schema, archive semantics, migration planning, UI/CLI affordances, and agent skills.

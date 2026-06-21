@@ -1,0 +1,4 @@
+interface:
+  display_name: "DuneBoard Project Init"
+  short_description: "Bootstrap a local project with DuneBoard config, agent guidance, and UI registration."
+  default_prompt: "Initialize this local project for DuneBoard, install agent guidance, register it in the local DuneBoard UI if appropriate, and validate the board."

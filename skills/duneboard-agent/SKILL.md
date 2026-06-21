@@ -25,6 +25,14 @@ pnpm dune validate
 pnpm dune next
 ```
 
+For an external project that does not define its own `pnpm dune` script, run
+the CLI from the DuneBoard workspace and pass the target board root:
+
+```bash
+pnpm --dir C:\path\to\DuneBoard dune --root C:\path\to\target-project validate
+pnpm --dir C:\path\to\DuneBoard dune --root C:\path\to\target-project next
+```
+
 Read the task-owned design directly when a task has one:
 
 ```bash

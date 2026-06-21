@@ -14,7 +14,9 @@ import {
   FlaskConical,
   GitBranch,
   ListTodo,
+  Moon,
   Search,
+  Sun,
   Vote,
   Wrench,
   X
@@ -24,13 +26,15 @@ import { executableTaskKinds, type ParsedTask, type TaskId, type TaskKind, type 
 import { emptyBoard, fetchProjectBoard, fetchProjects, type BoardIndex, type BoardProject } from "./board-data";
 
 type ViewMode = "list" | "board" | "graph";
+type ThemeMode = "light" | "dark";
 type ReadinessState = "available" | "planning" | "waiting";
 type FilterValue<T extends string> = "all" | T;
+type StatusFilterValue = "all" | TaskStatus[];
 type TaskFilters = {
   kind: FilterValue<TaskKind>;
   label: string;
   readiness: FilterValue<ReadinessState>;
-  status: FilterValue<TaskStatus>;
+  status: StatusFilterValue;
 };
 
 const statusOrder: TaskStatus[] = [
@@ -96,6 +100,7 @@ const graphNodeTitleLineHeight = 20;
 const graphNodeWidth = 420;
 const graphRowGap = 18;
 const projectStorageKey = "duneboard:selected-project";
+const themeStorageKey = "duneboard:theme";
 
 type GraphNodeLayout = {
   depth: number;
@@ -162,6 +167,13 @@ export function App() {
   const [filters, setFilters] = useState<TaskFilters>(emptyFilters);
   const [view, setView] = useState<ViewMode>("list");
   const [selectedTaskId, setSelectedTaskId] = useState<TaskId | undefined>();
+  const [theme, setTheme] = useState<ThemeMode>(() => initialTheme());
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+    window.localStorage.setItem(themeStorageKey, theme);
+  }, [theme]);
 
   useEffect(() => {
     let canceled = false;
@@ -354,15 +366,26 @@ export function App() {
             })}
           </div>
 
-          <label className="search-box">
-            <Search size={17} />
-            <input
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search tasks"
-              type="search"
-              value={query}
-            />
-          </label>
+          <div className="toolbar-actions">
+            <label className="search-box">
+              <Search size={17} />
+              <input
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search tasks"
+                type="search"
+                value={query}
+              />
+            </label>
+            <button
+              aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+              className="theme-toggle"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              title={theme === "dark" ? "Light theme" : "Dark theme"}
+              type="button"
+            >
+              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+          </div>
         </div>
 
         <FilterBar
@@ -406,6 +429,16 @@ export function App() {
       <TaskDetail board={board} onSelectTask={setSelectedTaskId} task={selectedTask} />
     </div>
   );
+}
+
+function initialTheme(): ThemeMode {
+  const storedTheme = window.localStorage.getItem(themeStorageKey);
+
+  if (storedTheme === "light" || storedTheme === "dark") {
+    return storedTheme;
+  }
+
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 function Metric({ label, tone, value }: { label: string; tone?: "danger" | "ok"; value: number }) {
@@ -463,25 +496,126 @@ function FilterBar({
   resultCount: number;
   totalCount: number;
 }) {
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const lastStatusIndexRef = useRef<number | undefined>(undefined);
+  const statusClickShiftRef = useRef(false);
+  const statusMenuRef = useRef<HTMLDivElement>(null);
+  const selectedStatuses = statusFilterToSelectedStatuses(filters.status);
+  const allStatusesSelected = selectedStatuses.length === statusOrder.length;
+  const someStatusesSelected = selectedStatuses.length > 0;
+
+  useEffect(() => {
+    if (!statusMenuOpen) {
+      return undefined;
+    }
+
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (event.target instanceof Node && !statusMenuRef.current?.contains(event.target)) {
+        setStatusMenuOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setStatusMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [statusMenuOpen]);
+
   const setFilter = <Key extends keyof TaskFilters>(key: Key, value: TaskFilters[Key]) => {
     onFiltersChange({ ...filters, [key]: value });
+  };
+
+  const setSelectedStatuses = (statuses: TaskStatus[]) => {
+    setFilter("status", normalizeStatusFilter(statuses));
+  };
+
+  const toggleAllStatuses = (checked: boolean) => {
+    lastStatusIndexRef.current = undefined;
+    setFilter("status", checked ? "all" : []);
+  };
+
+  const toggleStatus = (status: TaskStatus, checked: boolean, shiftKey: boolean) => {
+    const statusIndex = statusOrder.indexOf(status);
+    const nextStatuses = new Set(selectedStatuses);
+
+    if (shiftKey && lastStatusIndexRef.current !== undefined) {
+      const startIndex = Math.min(lastStatusIndexRef.current, statusIndex);
+      const endIndex = Math.max(lastStatusIndexRef.current, statusIndex);
+
+      statusOrder.slice(startIndex, endIndex + 1).forEach((rangeStatus) => {
+        if (checked) {
+          nextStatuses.add(rangeStatus);
+        } else {
+          nextStatuses.delete(rangeStatus);
+        }
+      });
+    } else if (checked) {
+      nextStatuses.add(status);
+    } else {
+      nextStatuses.delete(status);
+    }
+
+    lastStatusIndexRef.current = statusIndex;
+    setSelectedStatuses(statusOrder.filter((orderedStatus) => nextStatuses.has(orderedStatus)));
   };
 
   return (
     <div className="filter-row">
       <Filter size={17} />
-      <select
-        aria-label="Status"
-        onChange={(event) => setFilter("status", event.target.value as TaskFilters["status"])}
-        value={filters.status}
-      >
-        <option value="all">All statuses</option>
-        {statusOrder.map((status) => (
-          <option key={status} value={status}>
-            {statusLabels[status]}
-          </option>
-        ))}
-      </select>
+      <div className="status-filter" ref={statusMenuRef}>
+        <button
+          aria-expanded={statusMenuOpen}
+          aria-haspopup="true"
+          className="status-filter-button"
+          onClick={() => setStatusMenuOpen((open) => !open)}
+          type="button"
+        >
+          <span>Status</span>
+          <strong>{statusFilterLabel(filters.status)}</strong>
+          <ChevronDown size={15} />
+        </button>
+        {statusMenuOpen ? (
+          <div aria-label="Status options" className="status-filter-menu" role="group">
+            <label className="status-filter-option status-filter-option-all">
+              <input
+                checked={allStatusesSelected}
+                onChange={(event) => toggleAllStatuses(event.currentTarget.checked)}
+                ref={(input) => {
+                  if (input) {
+                    input.indeterminate = someStatusesSelected && !allStatusesSelected;
+                  }
+                }}
+                type="checkbox"
+              />
+              <span>All statuses</span>
+            </label>
+            {statusOrder.map((status) => (
+              <label className="status-filter-option" key={status}>
+                <input
+                  checked={selectedStatuses.includes(status)}
+                  onChange={(event) => {
+                    toggleStatus(status, event.currentTarget.checked, statusClickShiftRef.current);
+                    statusClickShiftRef.current = false;
+                  }}
+                  onClick={(event) => {
+                    statusClickShiftRef.current = event.shiftKey;
+                  }}
+                  type="checkbox"
+                />
+                <span>{statusLabels[status]}</span>
+              </label>
+            ))}
+          </div>
+        ) : null}
+      </div>
       <select
         aria-label="Kind"
         onChange={(event) => setFilter("kind", event.target.value as TaskFilters["kind"])}
@@ -1072,7 +1206,7 @@ function taskMatchesQuery(task: ParsedTask, normalizedQuery: string): boolean {
 }
 
 function taskMatchesFilters(task: ParsedTask, filters: TaskFilters, board: BoardIndex): boolean {
-  if (filters.status !== "all" && task.status !== filters.status) {
+  if (!taskMatchesStatusFilter(task.status, filters.status)) {
     return false;
   }
 
@@ -1089,6 +1223,50 @@ function taskMatchesFilters(task: ParsedTask, filters: TaskFilters, board: Board
   }
 
   return true;
+}
+
+function normalizeStatusFilter(statuses: TaskStatus[]): StatusFilterValue {
+  const orderedStatuses = statusOrder.filter((status) => statuses.includes(status));
+
+  return orderedStatuses.length === statusOrder.length ? "all" : orderedStatuses;
+}
+
+function statusFilterLabel(filter: StatusFilterValue): string {
+  const selectedStatuses = statusFilterToSelectedStatuses(filter);
+
+  if (selectedStatuses.length === statusOrder.length) {
+    return "All statuses";
+  }
+
+  if (selectedStatuses.length === 0) {
+    return "No statuses";
+  }
+
+  if (selectedStatuses.length === 1) {
+    const selectedStatus = selectedStatuses[0];
+
+    return selectedStatus ? statusLabels[selectedStatus] : "No statuses";
+  }
+
+  if (selectedStatuses.length === statusOrder.length - 1) {
+    const omittedStatus = statusOrder.find((status) => !selectedStatuses.includes(status));
+
+    return omittedStatus ? `All except ${statusLabels[omittedStatus]}` : `${selectedStatuses.length} statuses`;
+  }
+
+  return `${selectedStatuses.length} statuses`;
+}
+
+function statusFilterToSelectedStatuses(filter: StatusFilterValue): TaskStatus[] {
+  if (filter === "all") {
+    return statusOrder;
+  }
+
+  return statusOrder.filter((status) => filter.includes(status));
+}
+
+function taskMatchesStatusFilter(status: TaskStatus, filter: StatusFilterValue): boolean {
+  return statusFilterToSelectedStatuses(filter).includes(status);
 }
 
 function isClosedTask(task: ParsedTask): boolean {

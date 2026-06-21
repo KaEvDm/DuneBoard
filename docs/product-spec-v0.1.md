@@ -16,10 +16,13 @@ format with example tasks and implementation plan.
 ### Task
 
 A Markdown file with YAML frontmatter and standard body sections.
+Tasks may include a `## Design` section when the task is the canonical design
+record for a feature or decision.
 
 ### Board
 
 A folder of task files plus optional configuration.
+The board configuration can point at one or more task roots.
 
 ### Graph
 
@@ -84,4 +87,3 @@ dune next
 - The validator catches duplicate IDs, missing links, invalid statuses, and
   dependency cycles.
 - Kanban remains a presentation layer over the graph, not the data model.
-

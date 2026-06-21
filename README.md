@@ -94,6 +94,9 @@ from the folder and YAML frontmatter.
 
 - [duneboard-agent](skills/duneboard-agent/SKILL.md): operate a DuneBoard board
   safely.
+- [duneboard-init-project](skills/duneboard-init-project/SKILL.md): bootstrap a
+  local project with DuneBoard config, agent guidance, and optional UI
+  registration.
 - [duneboard-import-ado](skills/duneboard-import-ado/SKILL.md): convert Azure
   DevOps work into DuneBoard tasks.
 - [duneboard-organize-local-project](skills/duneboard-organize-local-project/SKILL.md):
@@ -113,6 +116,10 @@ pnpm dev
 ```
 
 The preview UI runs at `http://127.0.0.1:5173`.
+
+On Windows, `Launch-DuneBoard.cmd` starts the dev server and opens the preview
+when it is ready. The launcher installs dependencies first if `node_modules/`
+is missing.
 
 To open another DuneBoard project, add it to the local project registry and
 select it in the UI:

@@ -22,14 +22,25 @@ The skill exists to prevent DuneBoard-specific mistakes:
 - Splitting into many role skills before real usage proves a need.
 - Embedding agent-runtime behavior into the task tracker.
 
-## File Shape
+## Source File Shape
 
-`SKILL.md` is the required Codex skill entrypoint. The skill identity comes
-from the containing folder and the YAML frontmatter:
+`SKILL.md` is the required skill entrypoint. Inside the DuneBoard repository,
+the source skill pack lives under `skills/`:
 
 ```text
 skills/duneboard-agent/SKILL.md
 ```
+
+When DuneBoard is installed into another project, copy the project-local
+operational skill to agent-discoverable locations instead:
+
+```text
+.codex/skills/duneboard-agent/SKILL.md
+.claude/skills/duneboard-agent/SKILL.md
+```
+
+Do not install target-project skills into a plain root-level `skills/`
+directory; agents may not discover that path automatically.
 
 ## Current Shape
 
@@ -51,6 +62,7 @@ It covers the operational loop:
 Add workflow skills only when they prevent repeated DuneBoard-specific mistakes:
 
 ```text
+skills/duneboard-init-project/SKILL.md
 skills/duneboard-import-ado/SKILL.md
 skills/duneboard-organize-local-project/SKILL.md
 ```
@@ -66,4 +78,4 @@ shows a repeated failure mode. Candidate future skills:
 - `duneboard-planning` if feature decomposition needs a stricter protocol
 - `duneboard-review` if board consistency review grows beyond validation
 
-Until then, keep the skill pack at these three skills.
+Until then, keep the skill pack at these four skills.
