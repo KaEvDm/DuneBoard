@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import path from "node:path";
-import { taskKindSchema, taskPrioritySchema, taskStatusSchema, type ParsedTask } from "@duneboard/core";
+import { taskKindSchema, taskPrioritySchema, taskStatusSchema } from "@duneboard/core";
 import {
   appendWorkLog,
   addTaskDependencies,
@@ -13,7 +13,19 @@ import {
   updateTaskFields,
   writeTaskFile
 } from "./board-files";
-import { printIssues, printTask, printTaskDesign, printTaskDetail, taskById, toTaskSummary } from "./format";
+import {
+  printIssues,
+  printPreflightCompact,
+  printTask,
+  printTaskDesign,
+  printTaskDetail,
+  printTaskSummaryDetail,
+  printWorkLog,
+  taskById,
+  toTaskDetailSummary,
+  toTaskSummary,
+  toTaskWorkLog
+} from "./format";
 import {
   createSourceSpecMigrationPlan,
   formatSourceSpecMigrationPlan,
@@ -57,10 +69,15 @@ program
 program
   .command("next")
   .description("Print tasks that are ready and have completed dependencies.")
+  .option("--limit <n>", "limit the number of printed tasks")
   .option("--json", "print JSON output")
   .action(async (options) => {
     const board = await loadBoard(rootOption());
-    const tasks = board.index.availableTaskIds.map((id) => taskById(board.index.tasksById, id));
+    const limit = parsePositiveIntegerOption(options.limit, "--limit");
+    const tasks = limitTasks(
+      board.index.availableTaskIds.map((id) => taskById(board.index.tasksById, id)),
+      limit
+    );
 
     if (options.json) {
       printJson(tasks.map(toTaskSummary));
@@ -99,10 +116,23 @@ program
   .argument("<id>", "task ID")
   .option("--with-design", "include design content in the detail output")
   .option("--design", "print only the design content")
+  .option("--summary", "print a compact task summary")
+  .option("--log-tail <n>", "number of latest work-log entries in summary output", "3")
   .option("--json", "print JSON output")
   .action(async (id, options) => {
     const board = await loadBoard(rootOption());
     const task = taskById(board.index.tasksById, id);
+    const logTail = parsePositiveIntegerOption(options.logTail, "--log-tail") ?? 3;
+
+    if (options.summary) {
+      if (options.json) {
+        printJson(toTaskDetailSummary(task, { logTail }));
+        return;
+      }
+
+      console.log(printTaskSummaryDetail(task, { logTail }));
+      return;
+    }
 
     if (options.json) {
       printJson(task);
@@ -115,6 +145,70 @@ program
     }
 
     console.log(printTaskDetail(task, { includeDesign: options.withDesign }));
+  });
+
+program
+  .command("preflight")
+  .description("Validate the board and print a bounded ready queue.")
+  .option("--compact", "print compact human output")
+  .option("--limit <n>", "limit the number of next tasks", "5")
+  .option("--json", "print JSON output")
+  .action(async (options) => {
+    const board = await loadBoard(rootOption());
+    const limit = parsePositiveIntegerOption(options.limit, "--limit") ?? 5;
+    const nextTasks = limitTasks(
+      board.index.availableTaskIds.map((id) => taskById(board.index.tasksById, id)),
+      limit
+    );
+    const archiveSubtreesValue = archiveSubtrees(board);
+    const ok = board.index.issues.length === 0;
+
+    if (options.json) {
+      printJson({
+        ok,
+        validation: {
+          liveTasks: board.index.tasks.length,
+          ignoredArchiveSubtrees: archiveSubtreesValue,
+          issues: board.index.issues
+        },
+        next: nextTasks.map(toTaskSummary)
+      });
+
+      if (!ok) {
+        process.exitCode = 1;
+      }
+
+      return;
+    }
+
+    if (options.compact) {
+      console.log(
+        printPreflightCompact({
+          archiveSubtrees: archiveSubtreesValue,
+          issues: board.index.issues,
+          liveTasks: board.index.tasks.length,
+          nextTasks
+        })
+      );
+
+      if (!ok) {
+        console.error(printIssues(board.index.issues));
+        process.exitCode = 1;
+      }
+
+      return;
+    }
+
+    if (!ok) {
+      console.error(printIssues(board.index.issues));
+      process.exitCode = 1;
+      return;
+    }
+
+    console.log(`OK ${board.index.tasks.length} live tasks validated.`);
+    console.log(`Ignored archive subtrees: ${archiveSubtreesValue.join(", ")}`);
+    console.log("");
+    console.log(nextTasks.length ? nextTasks.map(printTask).join("\n") : "No available tasks.");
   });
 
 const migrate = program.command("migrate").description("Plan repository migration workflows.");
@@ -141,7 +235,26 @@ migrate
     console.log(formatSourceSpecMigrationPlan(plan));
   });
 
-const task = program.command("task").description("Create and update tasks.");
+const task = program.command("task").description("Create, inspect, and update tasks.");
+
+task
+  .command("log")
+  .description("Print recent work-log entries for a task.")
+  .argument("<id>", "task ID")
+  .option("--tail <n>", "number of latest work-log entries", "5")
+  .option("--json", "print JSON output")
+  .action(async (id, options) => {
+    const board = await loadBoard(rootOption());
+    const selectedTask = taskById(board.index.tasksById, id);
+    const tail = parsePositiveIntegerOption(options.tail, "--tail") ?? 5;
+
+    if (options.json) {
+      printJson(toTaskWorkLog(selectedTask, { tail }));
+      return;
+    }
+
+    console.log(printWorkLog(selectedTask, { tail }));
+  });
 
 task
   .command("create")
@@ -307,6 +420,24 @@ function rootOption(): string {
 
 function printJson(value: unknown): void {
   console.log(JSON.stringify(value, null, 2));
+}
+
+function limitTasks<T>(tasks: T[], limit: number | undefined): T[] {
+  return limit === undefined ? tasks : tasks.slice(0, limit);
+}
+
+function parsePositiveIntegerOption(value: string | undefined, optionName: string): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`${optionName} must be a positive integer.`);
+  }
+
+  return parsed;
 }
 
 function archiveSubtrees(board: Awaited<ReturnType<typeof loadBoard>>): string[] {

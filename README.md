@@ -11,10 +11,9 @@ those files as a fast visual board, graph, and agent-ready execution queue.
 
 ## Status
 
-Workflow consolidation release. `v0.11.1` makes task-owned `## Design` content
-the canonical source for active work, adds source-spec migration and archive
-scan semantics, improves graph navigation, and adds project initialization
-guidance for new local boards.
+Agent workflow ergonomics release. `v0.12.0` adds compact preflight and task
+summary CLI views, stable Windows CLI wrappers, documented small-fix workflow
+guidance, and reproducible pnpm build approvals for local Codex use.
 
 ## Why
 
@@ -85,6 +84,7 @@ Create a minimal task file format that agents and humans can edit safely.
 - [Web UI](docs/web-ui.md)
 - [Agent skill design](docs/agent-skill-design.md)
 - [GitHub workflow](docs/github-workflow.md)
+- [Release workflow](docs/release-workflow.md)
 - [Roadmap](ROADMAP.md)
 - [Changelog](CHANGELOG.md)
 
@@ -130,13 +130,26 @@ Copy-Item .duneboard\projects.example.json .duneboard\projects.local.json
 pnpm dev
 ```
 
-CLI commands run through:
+CLI commands run through the package script inside this repository:
 
 ```bash
 pnpm dune validate
+pnpm dune preflight --compact
 pnpm dune next
 pnpm dune task create --title "Example task"
 ```
+
+On Windows, `scripts\DuneBoard.ps1` and `scripts\DuneBoard.cmd` run the direct
+`tsx` CLI entrypoint when dependencies are installed, then fall back to pnpm if
+needed:
+
+```powershell
+.\scripts\DuneBoard.ps1 preflight --compact
+.\scripts\DuneBoard.ps1 show DB-0007 --summary
+```
+
+See [CLI workflow](docs/cli-workflow.md) for external board roots, compact
+views, and pnpm setup notes.
 
 ## Current Preview
 

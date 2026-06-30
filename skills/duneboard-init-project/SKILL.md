@@ -76,12 +76,15 @@ directory. That is useful as a source package inside DuneBoard itself, but it is
 not where Codex or Claude Code discover project skills.
 
 The local skill must include exact commands for the target root. If the target
-project does not own the DuneBoard CLI, use the external workspace form:
+project does not own the DuneBoard CLI, prefer the stable wrapper from the
+DuneBoard workspace:
 
 ```powershell
-pnpm --dir C:\path\to\DuneBoard dune --root C:\path\to\project validate
-pnpm --dir C:\path\to\DuneBoard dune --root C:\path\to\project next
+C:\path\to\DuneBoard\scripts\DuneBoard.ps1 --root C:\path\to\project preflight --compact
 ```
+
+Use `pnpm --dir C:\path\to\DuneBoard dune --root C:\path\to\project ...` only
+as a fallback when the wrapper is unavailable.
 
 Minimal local skill body:
 
@@ -101,15 +104,17 @@ description: Work with this repository's DuneBoard board in tasks/. Use when pla
 Validate and inspect work:
 
 ```powershell
-pnpm --dir C:\path\to\DuneBoard dune --root C:\path\to\project validate
-pnpm --dir C:\path\to\DuneBoard dune --root C:\path\to\project next
+C:\path\to\DuneBoard\scripts\DuneBoard.ps1 --root C:\path\to\project preflight --compact
 ```
+
+For a narrow user-requested fix that touches only one or two files and does not
+touch DuneBoard task files or an active board task, skip claim/note/release and
+run only the relevant validation. Return to the full workflow if the work grows.
 ````
 
 Include the operational loop:
 
-- validate
-- inspect `next`
+- run compact preflight
 - claim before implementation
 - note progress
 - release as blocked only when no local action remains
@@ -117,7 +122,7 @@ Include the operational loop:
 - validate again after manual edits
 
 If the project already has `CLAUDE.md`, append a short DuneBoard section that
-points to `.claude/skills/duneboard-agent/SKILL.md` and the validation/next
+points to `.claude/skills/duneboard-agent/SKILL.md` and compact preflight
 commands. For `AGENTS.md`, point Codex to
 `.codex/skills/duneboard-agent/SKILL.md`. For other agent instruction files,
 add the same short pointer when appropriate.
@@ -156,13 +161,13 @@ Preserve existing entries and append or update only the target project entry.
 Run validation using the exact command written into the target instructions:
 
 ```powershell
-pnpm --dir C:\path\to\DuneBoard dune --root C:\path\to\project validate
+C:\path\to\DuneBoard\scripts\DuneBoard.ps1 --root C:\path\to\project preflight --compact
 ```
 
-If tasks were created, also run:
+If the wrapper is unavailable, use the fallback form:
 
 ```powershell
-pnpm --dir C:\path\to\DuneBoard dune --root C:\path\to\project next
+pnpm --dir C:\path\to\DuneBoard dune --root C:\path\to\project preflight --compact
 ```
 
 Stop when:

@@ -6,13 +6,45 @@ state stays valid and consistent.
 
 ## Run
 
+Inside the DuneBoard repository, the package script remains the normal command
+path:
+
 ```bash
 pnpm dune --help
-pnpm dune validate
-pnpm dune next
+pnpm dune preflight --compact
 ```
 
+On Windows, the stable wrapper avoids pnpm bootstrap checks when dependencies
+are already installed:
+
+```powershell
+.\scripts\DuneBoard.ps1 preflight --compact
+.\scripts\DuneBoard.ps1 --root C:\path\to\project preflight --compact
+.\scripts\DuneBoard.cmd show DB-0007 --summary
+```
+
+The wrapper calls `node_modules\.bin\tsx.CMD packages\cli\src\index.ts`
+directly when present, then falls back to `pnpm --dir <DuneBoard> dune ...` if
+the direct entrypoint is unavailable.
+
+For reproducible dependency setup, use the pinned package manager from
+`package.json` (`pnpm@10.25.0`). The workspace intentionally approves esbuild
+build scripts with `allowBuilds: esbuild` in `pnpm-workspace.yaml`, matching the
+local runtime dependencies used by `tsx` and Vite.
+
 ## Read Commands
+
+### Preflight
+
+```bash
+pnpm dune preflight
+pnpm dune preflight --compact
+pnpm dune preflight --json --limit 5
+```
+
+Runs validation and prints a bounded ready queue in one command. The compact
+view is the preferred agent preflight because it avoids reading full task
+files. If validation fails, preflight exits non-zero and prints the issues.
 
 ### Validate
 
@@ -30,12 +62,15 @@ stay in the repository without creating duplicate live IDs or parse errors.
 
 ```bash
 pnpm dune next
+pnpm dune next --limit 5
 pnpm dune next --json
+pnpm dune next --json --limit 5
 ```
 
 Prints tasks that are `ready` and whose dependencies are all `done`.
 Planning containers such as `epic` and `feature` are excluded from this
-execution queue.
+execution queue. Use `--limit` when the caller only needs a bounded amount of
+context.
 
 ### List
 
@@ -51,15 +86,30 @@ Lists tasks, optionally filtered by status.
 
 ```bash
 pnpm dune show DB-0004
+pnpm dune show DB-0004 --summary
+pnpm dune show DB-0004 --summary --log-tail 5
 pnpm dune show DB-0004 --with-design
 pnpm dune show DB-0004 --design
 pnpm dune show DB-0004 --json
+pnpm dune show DB-0004 --summary --json
 ```
 
 Shows task details, acceptance criteria, open questions, and work log. Design
 content is omitted from the default text output to keep task reads compact; use
 `--with-design` to include it in the detail view or `--design` to print only the
-raw `## Design` section for review, migration, or agent handoff.
+raw `## Design` section for review, migration, or agent handoff. Use
+`--summary` for frontmatter, acceptance progress, goal, and the latest Work Log
+entries without the full historical log.
+
+### Task Log
+
+```bash
+pnpm dune task log DB-0004
+pnpm dune task log DB-0004 --tail 5
+pnpm dune task log DB-0004 --tail 5 --json
+```
+
+Prints recent `## Work Log` entries without reading the full task detail.
 
 ### Migrate Source Specs
 

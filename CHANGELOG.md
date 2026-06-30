@@ -9,6 +9,26 @@ once implementation releases begin.
 
 No unreleased changes yet.
 
+## [0.12.0] - 2026-06-30
+
+### Added
+
+- Added `dune preflight` for bounded `validate` plus `next` checks, including
+  compact human output and JSON output.
+- Added `dune next --limit`, `dune show --summary --log-tail`, and
+  `dune task log --tail` to reduce context needed for agent workflows.
+- Added Windows `scripts/DuneBoard.ps1` and `scripts/DuneBoard.cmd` wrappers
+  that use the direct `tsx` CLI entrypoint before falling back to pnpm.
+- Added CLI tests for compact task views and bounded ready queues.
+- Added a release workflow document.
+
+### Changed
+
+- Updated agent skills and CLI docs to prefer compact preflight, stable wrapper
+  commands, and a documented Small Fix Fast Path.
+- Documented `allowBuilds: esbuild` as the intended pnpm build approval state.
+- Documented Work Log compaction guidance for long-running tasks.
+
 ## [0.11.1] - 2026-06-21
 
 ### Fixed
@@ -154,7 +174,8 @@ No unreleased changes yet.
 - Initial project board written in DuneBoard Markdown task files.
 - Initial agent skill draft.
 
-[Unreleased]: https://github.com/KaEvDm/DuneBoard/compare/v0.11.1...HEAD
+[Unreleased]: https://github.com/KaEvDm/DuneBoard/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.11.1...v0.12.0
 [0.11.1]: https://github.com/KaEvDm/DuneBoard/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/KaEvDm/DuneBoard/compare/v0.9.0...v0.10.0

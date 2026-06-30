@@ -46,6 +46,9 @@ Use milestones:
 Patch releases fix bugs. Minor releases add features while the project is below
 `v1.0.0`.
 
+Use the detailed [release workflow](release-workflow.md) for version bumps,
+verification, tagging, and GitHub Release publishing.
+
 ## Branch Protection
 
 Once CI exists, protect `main`:
@@ -57,4 +60,3 @@ Once CI exists, protect `main`:
 
 For the first solo commits, direct pushes are acceptable if they are clean and
 small. Switch to pull requests before inviting contributors.
-

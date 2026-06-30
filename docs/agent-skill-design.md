@@ -52,12 +52,18 @@ skills/duneboard-agent/SKILL.md
 
 It covers the operational loop:
 
-1. validate
-2. find next work
-3. claim or create a task
-4. append short notes
+1. run compact preflight for tracked work
+2. find matching ready work
+3. claim or create a task when durable coordination is needed
+4. append short notes for progress that should survive in Git
 5. release, block, or complete
-6. validate again
+6. validate again after task-file edits
+
+It also documents a Small Fix Fast Path: for narrow direct user fixes that do
+not touch task files or active board work, agents can skip claim/note/release
+and run only the relevant local validation. This keeps the smallest useful
+workflow from becoming ceremony while preserving the full board protocol for
+tracked work.
 
 Add workflow skills only when they prevent repeated DuneBoard-specific mistakes:
 

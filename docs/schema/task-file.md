@@ -78,6 +78,14 @@ Tasks should use these sections in this order:
   for current design.
 - `## Work Log` is the dated history of task changes and execution evidence.
 
+### Work Log Policy
+
+Keep Work Log entries short and operational. When a task grows beyond roughly
+20-30 Work Log entries, summarize older entries into a compact historical
+summary under `## Notes` or near the top of `## Work Log`, then keep only the
+latest operational entries as individual bullets. Preserve detailed history in
+Git instead of forcing future agents to read every historical turn.
+
 ### Design Section Policy
 
 `## Design` is optional at the parser level for every task kind, but authoring
